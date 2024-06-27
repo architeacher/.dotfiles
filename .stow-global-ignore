@@ -1,0 +1,14 @@
+# ~/.dotfiles/.stow.local.ignore: Files to be ignored by gnu 'stow'
+
+\.DS_Store
+
+\.git
+\.gitignore
+\.gitmodules
+
+.+~          # emacs backup files
+\#.*\#       # emacs autosave files
+
+^/README.*
+^/LICENSE.*
+^/COPYING

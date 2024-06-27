@@ -1,0 +1,176 @@
+tap "bufbuild/buf"
+tap "dotenvx/brew"
+tap "FelixKratz/formulae"
+tap "homebrew/bundle"
+tap "julien-cpsn/atac"
+tap "koekeishiya/formulae"
+tap "owasp-amass/amass"
+
+# Dev Tools
+brew "bufbuild/buf/buf"
+brew "dotenvx/brew/dotenvx"
+brew "git"
+brew "git-delta"
+brew "go"
+brew "gpg"
+brew "graphviz"
+brew "grpcui"
+brew "grpcurl"
+brew "neovim"
+brew "protoc-gen-go"
+brew "protoc-gen-go-grpc"
+brew "rust"
+brew "tokei"                                # Displays statistics about your code.
+brew "zig"
+
+# Docker 🐳
+brew "ctop"
+brew "dive"
+brew "lazydocker"
+
+# K8s
+brew "argocd"
+brew "helm"
+brew "k9s"
+brew "kind"
+brew "kubectx"                              # Switches between kubectl contexts easily and creates aliases.
+
+# General tools
+brew "koekeishiya/formulae/skhd"            # A simple hotkey daemon.
+brew "mosh"                                 # Remote terminal application that allows roaming.
+
+# Security
+brew "amass"                                 # Performs network mapping of attack surfaces and external asset discovery.
+brew "nikto"                                 # Web server scanner.
+
+# Terminal Tools
+brew "age"                                  # A modern and secure file encryption tool.
+brew "atac"                                 # Arguably a Terminal API Client (like postman).
+brew "atuin"                                # Replaces your existing shell history with a SQLite database.
+brew "bash"                                 # Bourne again shell
+brew "bash-completion"                      # Auto completions for `bash`
+brew "bat"
+brew "bottom"
+brew "brew-cask-completion"
+brew "broot"                                # A new way to see and navigate directory trees.
+brew "btop"
+brew "coreutils"
+brew "direnv"                               # Loads and unloads environment variables depending on the current directory.
+brew "diffr"                                # Reviewing changes involves reading diffs.
+# brew "dog"                                # Not maintained upstream.
+brew "duf"
+brew "dust"
+brew "eza"
+brew "fd"
+brew "fzf"
+brew "gpg"
+brew "glow"                                 # Render markdown on the CLI.
+brew "hyperfine"                            # A command-line benchmarking tool, written in Rust.
+brew "jq"
+brew "keychain"
+brew "lazygit"
+brew "mas"
+brew "midnight-commander"
+brew "mkcert"
+brew "nushell"
+brew "nmap"
+brew "pinentry-mac"
+brew "portal"                               # Sends files from any computer to another.
+brew "ripgrep"                              # Recursive Regex search tool.
+brew "safe-rm"                              # Prevent the accidental deletion of important files.
+brew "sd"                                   # Intuitive find & replace CLI (sed alternative).
+brew "starship"                             # Starship cross-shell prompt.
+brew "stow"
+brew "teleport"
+brew "telnet"
+brew "termshark"                            # Provides a terminal-based user interface for analyzing packet captures.
+brew "terraform"
+brew "tldr"
+brew "tmux"
+brew "tpm"                                  # Plugin manager for tmux.
+brew "trash-cli"
+brew "tree"
+brew "vivid"
+brew "watch"
+brew "wget"
+brew "xh"                                   # A friendly and fast tool for sending HTTP requests, written in Rust.
+brew "yazi"
+brew "yq"
+brew "zoxide"
+
+# Terminal Fun
+brew "asciiquarium"
+brew "cmatrix"
+brew "cowsay"
+brew "fortune"
+brew "lolcat"
+brew "neofetch"
+
+# Zsh
+brew "zsh-autocomplete"
+brew "zsh-autosuggestions"
+brew "zsh-completions"
+brew "zsh-fast-syntax-highlighting"
+brew "zsh-history-substring-search"
+
+# Apps
+cask "caffeine"                             # Prevents the system from going to sleep.
+cask "chatgpt"
+cask "dropbox"
+cask "docker"
+cask "jetbrains-toolbox"
+cask "kindle"
+cask "mitmproxy"                            # Intercepts, modifies, replays, saves HTTP/S traffic.
+cask "nikitabobko/tap/aerospace"            #  i3-like tiling window manager for macOS.
+cask "nordvpn"
+cask "obsidian"
+cask "orbstack"                             # Fast, light, and simple way to run containers and Linux machines.
+cask "sketchybar"                           # Creates a highly flexible, customizable, and fast status bar replacement.
+cask "podman-desktop"
+cask "postman"
+# cask "raycast"
+cask "rectangle"
+cask "signal"
+cask "slack"
+cask "telegram"
+cask "visual-studio-code"
+cask "zed"
+
+# Terminals
+cask "ghostty"
+cask "warp"
+cask "wave"
+cask "wezterm"
+
+# Fonts - Nerd fonts for the terminal - https://www.nerdfonts.com/
+cask "font-comic-shanns-mono-nerd-font" # ComicShannsMono Nerd Font
+cask "font-envy-code-r-nerd-font"       # EnvyCodeR Nerd Font
+cask "font-hack-nerd-font"              # Hack Nerd Font
+cask "font-jetbrains-mono-nerd-font"    # JetbrainsMono Nerd Font
+cask "font-sauce-code-pro-nerd-font"    # Source Code Pro Mono Nerd Font
+
+# Fonts - Normal
+cask "font-open-sans"
+cask "font-roboto"
+cask "font-source-code-pro"
+
+# Web Browsers
+cask "arc"
+cask "brave-browser"
+cask "firefox"
+
+# Mac Apps
+mas "RunCat", id: 1429033973
+
+# Visual Studio Code Plugins
+vscode "1YiB.rust-bundle"
+vscode "Catppuccin.catppuccin-vsc"
+vscode "Catppuccin.catppuccin-vsc-icons"
+vscode "dooez.alt-catppuccin-vsc"
+vscode "golang.Go"
+vscode "hashicorp.terraform"
+vscode "ms-azuretools.vscode-docker"
+vscode "ms-kubernetes-tools.vscode-kubernetes-tools"
+vscode "ms-vscode.makefile-tools"
+vscode "mvllow.rose-pine"
+vscode "MattFoulks.har-analyzer"

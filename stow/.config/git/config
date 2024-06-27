@@ -1,0 +1,350 @@
+[advice]
+    addEmptyPathspec = false
+	detachedHead     = false
+
+[apply]
+    # detect whitespace errors when applying a patch
+    whitespace = warn
+
+    # automagically fix whitespace
+    #whitespace = fix
+
+[branch]
+	# Show most recently changed branches first.
+	sort = -committerdate
+
+[color]
+    branch      = auto
+    diff        = auto
+    interactive = auto
+    pager       = true
+    status      = auto
+    ui          = true
+
+[color "branch"]
+    # Highlight current. Yellow local branches; Green remotes.
+    current = yellow reverse
+    local   = yellow
+    remote  = green
+
+[color "diff"]
+    # Yellow meta; Magenta line info; Red for deletions; Green for additions.
+    commit     = yellow bold
+    frag       = magenta bold
+    func       = 146 bold
+    meta       = 11
+    new        = green bold
+    old        = red bold
+    whitespace = red reverse
+
+[color "diff-highlight"]
+    newHighlight = cyan bold 22
+    newNormal    = green bold
+    oldHighlight = yellow bold 52
+    oldNormal    = red bold
+
+[color "status"]
+    # Changed files are yellow.
+    # Staged files are green.
+    # New (untracked) files are cyan.
+    # Headers are gray (white dimmed)
+    # Branch is always green even in headers
+    added     = green
+    branch    = green
+    changed   = yellow
+    header    = white dim
+    untracked = cyan
+
+[core]
+    # Global `.gitattributes`
+    attributesfile = ~/.config/git/attributes
+
+    # Disable auto-converting CRLF line endings into LF.
+    autocrlf = input
+
+    # Set comment character to something that allows mentioning issue numbers.
+    commentChar = ";"
+
+    # Default editor for commit messages and other inputs
+    # Even when EDITOR is set to something else
+    editor       = nvim
+;   editor       = code --wait
+    excludesfile = ~/.config/git/ignore
+    filemode     = false
+
+    # Enable the filesystem cache (for git bash | windows)
+    fscache = true
+
+    # Working with Unix line endings (LF).
+    eol = false
+
+    # Making directories and file names case sensitive.
+    ignorecase = false
+    pager      = diffr | less -R
+
+    # Prevent showing files whose names contain non-ASCII symbols as unversioned.
+    # http://michael-kuehnel.de/git/2014/11/21/git-mac-osx-and-german-umlaute.html
+    precomposeunicode = false
+
+    # https://stackoverflow.com/questions/18257622/why-is-git-core-preloadindex-default-value-false/18259086
+    preloadindex = true
+
+    # Make `git rebase` safer on OS X
+    # More info: http://www.git-tower.com/blog/make-git-rebase-safe-on-osx
+    trustctime     = false
+
+    # Speed up commands involving untracked files such as `git status`.
+    # https://git-scm.com/docs/git-update-index#_untracked_cache
+    untrackedCache = true
+
+    # Treat
+    #  - spaces before tabs,
+    #  - all kinds of trailing whitespace
+    # as an error.
+    whitespace = "cr-at-eol,-indent-with-non-tab,space-before-tab,tab-in-indent,trailing-space"
+
+[commit]
+    gpgsign = true
+
+    # Specify template file for new commit messages.
+    template = ~/.config/git/message.txt
+    verbose  = false
+
+[credential]
+    helper = cache --timeout 30000
+    helper = osxkeychain
+    helper = netrc -f ~/.config/netrc -v -k -d
+
+[credential "https://foot.bar.buzz"]
+    # helper = !bash -c '"echo \"netrc --file ${NETRC}\";"'
+
+[delta]
+    features     = catppuccin-mocha
+    line-numbers = true
+    navigate     = true
+    side-by-side = true
+
+[diff]
+    # Use more time to create better diffs.
+    # E.g. matching opening/closing braces from neighbour functions.
+    # See "`git help diff` --patience" and "`git help merge` recursive".
+    algorithm = patience
+
+    color      = auto
+    colorMoved = default
+
+    # (git 2.9+) Set this option to `true` to enable an experimental heuristic that
+    # shifts the hunk boundary in an attempt to make the resulting
+    # patch easier to read.
+    compactionHeuristic = true
+
+    pager = diffr | less -R
+
+    # Tells git to detect renames. If set to any boolean value,
+    # it will enable basic rename detection. If set to "copies" or "copy",
+    # it will detect copies, as well.
+    renames = copies
+
+    renamelimit = 9999
+    submodule   = log   # List submodules commits in the range.
+
+    # Default to opendiff for visualising diffs.
+    # opendiff opens FileMerge
+    # Override with --tool=<tool> in difftool
+    # See`git help difftool`
+    # If `opendiff` is not in your $PATH, override with difftool.opendiff.path
+    # See`git help config` and search for "diff.tool"
+    #tool = opendiff
+    tool  = neovim
+
+[diff "bin"]
+    # Use `hexdump` to diff binary files
+    textconv = hexdump -v -C
+
+[difftool "vscode"]
+	cmd = code --wait --diff $LOCAL $REMOTE
+
+[fetch]
+    # Remove any remote-tracking references that no longer exist on the remote.
+    prune = true
+
+[filter "lfs"]
+    # Specify the command to convert a worktree file's content to a blob upon checkin.
+    clean = git-lfs clean -- %f
+
+    # Convert between Large File Storage pointer and actual content.
+    process = git-lfs filter-process
+
+    # Specify the command to convert a blob object's content to a worktree file upon checkout.
+    smudge = git-lfs smudge -- %f
+
+    # Turn a content that by itself is unusable into a usable content.
+    required = true
+
+[format]
+    signOff = true
+
+[github]
+	user = architeacher
+
+[gpg]
+    # Default is "openpgp". Other possible values are "x509", "ssh".
+    format = openpgp
+
+[gpg "ssh"]
+	allowedSignersFile = ~/.ssh/allowed_signers
+
+[grep]
+    extendRegexp = true
+    lineNumber   = true
+
+[help]
+    # Automatically correct and execute mistyped commands.
+    autocorrect = 1
+
+    autocorrect = 10
+    # e.g.: $ git lgo
+    # WARNING: You called a Git command named 'lgo', which does not exist.
+    # Continuing under the assumption that you meant 'log'
+    # in 1.0 seconds automatically...
+
+[include]
+	path = "~/.config/git/alias"
+	path = "~/.config/git/catppuccin.gitconfig"
+
+[init]
+    defaultBranch = main
+
+[interactive]
+    diffFilter = diffr --line-numbers
+
+[log]
+    decorate      = short
+    showSignature = false
+
+[merge]
+    # Git has an option to display merge conflicts in diff3 format (by default it only displays the two files to be merged).
+    conflictstyle = diff3
+
+    # Include summaries of merged commits in newly created merge commit messages
+    log = true
+
+    # Always show a diffstat at the end of a merge
+    stat = true
+
+    #tool = opendiff
+    tool = nvim -d
+
+[mergetool]
+    # No *.orig files left when using mergetool.
+	keepBackup = false
+
+[mergetool "nvim"]
+    cmd = nvim -f -c \"Gdiff\" \"${MERGED}\"
+
+[mergetool "vscode"]
+	cmd = code --wait $MERGED
+
+[pager]
+	branch = false
+    color  = true
+	diff   = delta
+	log    = diffr | less -R
+	reflog = diffr | less -R
+	show   = diffr | less -R
+
+[pull]
+    ff      = "only"
+    rebase  = true
+    twohead = ort
+
+[push]
+    autoSetupRemote = true
+
+    # See `git help config` and search for "push.default"
+    # for more information on different options of the below setting.
+    # Setting to Git 2.0 default to suppress warning message
+    # If you use branches with different remote name, use "upstream"
+
+    # Push only the current branch
+    #
+    # default = simple # disabled for now to be compatible with debian wheezy
+
+    # Push all branches
+    #
+    # default = matching
+
+    # Prevent pushing all locally modified branches if the branch to push is not specified while 'git push'.
+    #
+    default = nothing
+
+    # Make `git push` push relevant annotated tags when pushing branches out.
+    followTags = true
+
+[rebase]
+	abbreviateCommands = true
+
+    # Use --autosquash by default. It's not like one would write !fixup message by accident.
+    autoSquash = true
+
+    # Use --autostash when running git pull --rebase and when rebasing interactively
+    autoStash = true
+
+[rerere]
+    enabled = true
+
+[status]
+    showuntrackedfiles = all
+
+    # Enable submodule summary of commits.
+    submoduleSummary = true
+
+[submodule]
+    fetchJobs = 3
+	recurse   = true
+
+[tag]
+	gpgSign = true
+
+[ui "color"]
+    ui = always
+
+# URL shorthands
+#
+# See `git help config` and search for "url.<base>"
+#
+# gh: is a shorthand for git@github.com
+[url "git@github.com:"]
+    insteadOf     = "gh:"
+    pushInsteadOf = "github:"
+    pushInsteadOf = "git://github.com/"
+
+# github: is a shorthand for git://github.com/
+[url "git://github.com/"]
+    insteadOf = "github:"
+
+# gst: is a shorthand for git://gist.github.com/
+[url "git@gist.github.com:"]
+    insteadOf     = "gst:"
+    pushInsteadOf = "gist:"
+    pushInsteadOf = "git://gist.github.com/"
+
+# gist: is a shorthand for git://gist.github.com/
+[url "git://gist.github.com/"]
+    insteadOf = "gist:"
+
+# Activate if you have your public keys added in Github.
+#[url "ssh://git@github.com/"]
+#    insteadOf = https://github.com/
+
+[user]
+	email      = 1043964+architeacher@users.noreply.github.com
+	name       = Ahmed Kamal
+	signingkey = 27C075EFB70B41F1
+
+# Includes should be after the values you want to overwrite.
+[includeIf "gitdir/i:~/private/"]
+    path = "~/.config/git/private-config"
+
+[includeIf "gitdir/i:~/work/"]
+    path = "~/.config/git/work-config"
