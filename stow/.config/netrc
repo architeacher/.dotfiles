@@ -1,0 +1,8 @@
+########################
+### John Doe's Host ###
+######################
+
+# Configuration example, please uncomment the following lines.
+# machine foo.bar
+# login john.doe
+# password bottom.secret

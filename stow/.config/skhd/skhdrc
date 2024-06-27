@@ -1,0 +1,34 @@
+# APPS #
+#
+# Arch
+alt - a : open -a /Applications/Arc.app/Contents/MacOS/Arc
+
+# Show date
+alt - d : osascript ~/.config/skhd/applescripts/pop.scpt
+
+# Close notifications
+ralt - n : osascript ~/.config/skhd/applescripts/notifications.scpt
+
+# QuickTime
+alt - q : open -a /System/Applications/QuickTime\ Player.app/Contents/MacOS/QuickTime\ Player
+
+# Obsidian
+alt - o : open -a /Applications/Obsidian.app/Contents/MacOS/Obsidian
+
+# Slack
+lalt - s : open -a /Applications/Slack.app/Contents/MacOS/Slack
+
+# Signal
+ralt - s : open -a /Applications/Signal.app/Contents/MacOS/Signal
+
+# Telegram
+alt - t : open -a /Applications/Telegram.app/Contents/MacOS/Telegram
+
+# Wezterm
+lalt - w : open -a /Applications/Wezterm.app/Contents/MacOS/wezterm
+
+# Whatsapp
+ralt - w : open -a /Applications/WhatsApp.app/Contents/MacOS/WhatsApp
+
+# Zed
+alt - z : open -a /Applications/Zed.app/Contents/MacOS/zed

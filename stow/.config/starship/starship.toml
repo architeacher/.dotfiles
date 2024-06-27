@@ -1,0 +1,266 @@
+"$schema" = "https://starship.rs/config-schema.json"
+
+add_newline         = false
+command_timeout     = 1000
+continuation_prompt = "▶▶ "
+
+format = """\
+[░▒▓](text)\
+${os}\
+[\uE0B0](bg:crust fg:#a3aed2)\
+${username}\
+${sudo}\
+[\uE0B0](bg:blue fg:crust)\
+${directory}\
+[\uE0B0](bg:#191724 fg:blue)\
+${rust}\
+${zig}\
+[\uE0B0](bg:lavender fg:#191724)\
+${golang}\
+[\uE0B0](bg:#3e8fb0 fg:lavender)\
+${lua}\
+${terraform}\
+[\uE0B0](bg:surface0 fg:#3e8fb0)\
+${docker_context}\
+${kubernetes}\
+[\uE0B0](bg:green fg:surface0)\
+${git_branch}\
+${git_commit}\
+${git_state}\
+${git_status}\
+${git_metrics}\
+[\uE0B0](fg:green)\
+${line_break}\
+${character}\
+"""
+
+palette      = "catppuccin_mocha"
+# move the rest of the prompt to the right
+right_format = """\
+[](fg:#394260)\
+${cmd_duration}\
+${memory_usage}\
+${battery}\
+${time}\
+[▓▒░](fg:#394260)\
+"""
+
+[aws]
+format   = '[${symbol}(profile: "${profile}" )(\(region: ${region}\) )](${style})'
+disabled = false
+style    = "bold blue"
+symbol   = " "
+
+[battery]
+format             = "[ ${symbol} ${percentage} ](${style})"
+charging_symbol    = "⚡️"
+#charging_symbol   = "󰂄️"
+discharging_symbol = "󰂃"
+empty_symbol       = "󰂎"
+#full_symbol       = "󰁹"
+full_symbol        = "🔋"
+unknown_symbol     = "󰁽"
+
+[[battery.display]] # "bold #d20f39" style and discharging_symbol when capacity is between 0% and 10%
+style     = "bg:rosewater fg:bold #d20f39"
+threshold = 10
+
+[[battery.display]] # "bold #fe640b" style and 󰂃 symbol when capacity is between 30% and 50%
+style     = "bg:yellow fg:bold #fe640b"
+threshold = 50
+
+[[battery.display]] # "bold #33658a" style and 󰂃 symbol when capacity is between 80% and 100%
+style     = "bg:sapphire fg:bold #33658a"
+threshold = 100
+
+[character]
+disabled                  = false
+error_symbol              = "[ ✗ 🔥](bold fg:red)"
+success_symbol            = "[ ➜ 🚀](bold fg:green)"
+vimcmd_symbol             = "[](bold fg:creen)"
+vimcmd_replace_one_symbol = "[](bold fg:purple)"
+vimcmd_replace_symbol     = "[](bold fg:purple)"
+vimcmd_visual_symbol      = "[](bold fg:lavender)"
+
+[cmd_duration]
+format   = "[ ⏳ ${duration} ](${style})"
+min_time = 100
+style    = "bg:#394260 fg:bold #769ff0"
+
+[directory]
+format                    = "[   ${path} ](${style})[${read_only}](${read_only_style})"
+fish_style_pwd_dir_length = 2
+home_symbol               = "  ~"
+read_only                 = " "
+read_only_style           = "bg:blue fg:red"
+style                     = "bg:blue fg:mantle"
+truncate_to_repo          = false
+truncation_length         = 3
+truncation_symbol         = "…/"
+
+[directory.substitutions]
+"Desktop"   = "🖥"
+"Developer" = "󰲋 "
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music"     = "󰝚 "
+"Pictures"  = " "
+
+[docker_context]
+detect_files = ["compose.yaml", "docker-compose.yml", "docker-compose.yaml", "Dockerfile"]
+format       = "[ ${symbol}${context} ](${style})"
+style        = "bg:surface0 fg:#0db7ed"
+symbol       = " "
+
+[fill]
+symbol = '.'
+style = 'green'
+
+[git_branch]
+format            = "[ ${symbol}${branch} (:${remote_branch})](${style})"
+style             = "bg:green fg:crust"
+symbol            = "  "
+truncation_length = 15
+truncation_symbol = "…/"
+
+[git_commit]
+format             = "[${hash}${tag} ](${style})"
+commit_hash_length = 8
+only_detached      = true
+style              = "bg:green fg:#fe640b"
+tag_symbol         = "🏷"
+
+[git_state]
+format      = "[(${state}( ${progress_current} of ${progress_total}))](${style})"
+cherry_pick = "[🍒 PICKING](bg:green fg:bold red)"
+
+[git_status]
+format     = "[${all_status}${ahead_behind} ](${style})"
+ahead      = "⇡${count}"
+behind     = "⇣${count}"
+conflicted = "🏳"
+deleted    = " "
+diverged   = "⇕⇡${ahead_count}⇣${behind_count}"
+modified   = " "
+renamed    = "🔖"
+staged     = "++(${count})"
+stashed    = "🧷"
+style      = "bg:green fg:#8839ef"
+untracked  = " "
+up_to_date = "🗞"
+
+[git_metrics]
+format             = "[[+${added} ](${added_style})/[-${deleted} ](${deleted_style})](bg:green fg:bold base)"
+added_style        = "bg:green fg:bold 33"
+deleted_style      = "bg:green fg:bold #9a348e"
+disabled           = false
+ignore_submodules  = true
+only_nonzero_diffs = true
+
+[golang]
+format = "[ ${symbol}(${version}) ](${style})"
+style  = "bg:lavender fg:#00758d"
+symbol = " "
+
+[hg_branch]
+format = "[ ${symbol}${branch} ](${style})"
+symbol = " "
+
+[kubernetes]
+disabled     = false
+detect_files = ["Dockerfile"]
+format       = "[${symbol}${context}( (${namespace})) ](${style})"
+style        = "bg:surface0 fg:bold #3970e4"
+symbol       = "☸ "
+
+[[kubernetes.contexts]]
+context_alias   = "docker-desktop"
+context_pattern = "docker-desktop"
+style           = "bg:surface0 fg:bold #3970e4"
+symbol          = " "
+
+[lua]
+format = "[ ${symbol}(${version}) ](${style})"
+style  = "bg:#3e8fb0 fg:#000080"
+symbol = " "
+
+[memory_usage]
+disabled  = false
+format    = "[ ${symbol} ${ram} ${ram_pct}( | ${swap} ${swap_pct}) ](${style})"
+style     = "bg:#394260 fg:bold green"
+symbol    = "🐏"
+threshold = 75
+
+[os]
+disabled = false
+format   = "[${symbol} ](${style})"
+style    = "bg:#a3aed2 fg:crust"
+
+[os.symbols]
+Alpine  = ""
+Android = ""
+Linux   = "󰌽"
+Macos   = " 󰀵"
+Redhat  = "󱄛"
+Ubuntu  = "󰕈"
+Windows = "󰍲"
+
+[palettes.catppuccin_mocha]
+base      = "#1e1e2e"
+blue      = "#89b4fa"
+crust     = "#11111b"
+flamingo  = "#f2cdcd"
+green     = "#a6e3a1"
+lavender  = "#b4befe"
+mantle    = "#181825"
+maroon    = "#eba0ac"
+mauve     = "#cba6f7"
+overlay0  = "#6c7086"
+overlay1  = "#7f849c"
+overlay2  = "#9399b2"
+peach     = "#fab387"
+pink      = "#f5c2e7"
+red       = "#f38ba8"
+rosewater = "#f5e0dc"
+sapphire  = "#74c7ec"
+sky       = "#89dceb"
+subtext0  = "#a6adc8"
+subtext1  = "#bac2de"
+surface0  = "#313244"
+surface1  = "#45475a"
+surface2  = "#585b70"
+teal      = "#94e2d5"
+text      = "#cdd6f4"
+yellow    = "#f9e2af"
+
+[rust]
+format = "[ ${symbol}( ${version}) ](${style})"
+style  = "bg:#191724 fg:#ce412b"
+symbol = ""
+
+[sudo]
+disabled = false
+style    = "bg:crust fg:bold mauve"
+symbol   = "🧙 "
+
+[terraform]
+format = "[ ${symbol}${workspace}( ${version}) ](${style})"
+style  = "bg:#3e8fb0 fg:#ffffff"
+symbol = "󱁢 "
+
+[time]
+disabled    = false
+format      = "[  ${time} ](${style})"
+style       = "bg:#212736 fg:bold #769ff0"
+time_format = "%R" # Hour:Minute Format
+
+[username]
+format      = "[ ${user} ](${style})"
+show_always = true
+style_root  = "bg:crust fg:#04a5e5"
+style_user  = "bg:crust fg:#04a5e5"
+
+[zig]
+format = "[ ${symbol}(${version}) ](${style})"
+style  = "bg:#191724 fg:#fe640b"
+symbol = " "
