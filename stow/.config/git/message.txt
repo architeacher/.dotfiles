@@ -1,0 +1,32 @@
+; <type>[(<scope>)][!]: <subject>, 50 chars -----|
+
+; [BODY: optional, 72 chars] ------------------------------------------|
+; WHY the changes are made?
+
+; [FOOTER(S): optional, 72 chars] -------------------------------------|
+; The footer should contain references or actions for tools
+; BREAKING CHANGE:
+; SECURITY FIX:
+; Closes {{#CLOSED ISSUES}}
+; <JIRA_ISSUE_KEY> #comment This is a comment
+; <JIRA_ISSUE_KEY> #close
+; <JIRA_ISSUE_KEY> #time <value>w <value>d <value>h <value>m
+
+; COMMIT GUIDELINES: Conventional Commits + Dotfiles style ------------|
+; Types:
+;   - chore: change the tools and libraries
+;   - ci: change the build process
+;   - docs: edit the documentation
+;   - feat: add a new feature
+;   - fix: patch a bug
+;   - perf: optimize performance with a code change
+;   - refactor: modify code but no fixes or new features
+;   - revert: revert to a previous commit
+;   - style: modify code without affecting its meaning
+;   - test: add missing or correct existing tests
+;   - wip: mark a feature branch as work in progress
+; Scope: (optional) noun describing a section of the codebase.
+; Subject: imperative mood, start with lowercase, no ending punctuation.
+; Breaking changes: `!` after type/scope or `BREAKING CHANGE` in footer.
+;
+; See https://www.conventionalcommits.org/
