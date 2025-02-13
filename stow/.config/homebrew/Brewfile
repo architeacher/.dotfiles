@@ -49,54 +49,53 @@ brew "atac"                                 # Arguably a Terminal API Client (li
 brew "atuin"                                # Replaces your existing shell history with a SQLite database.
 brew "bash"                                 # Bourne again shell
 brew "bash-completion"                      # Auto completions for `bash`
-brew "bat"
-brew "bottom"
+brew "bat"                                  # A cat(1) clone with wings.
+brew "bottom"                               # A monitor of resources. Rust version.
 brew "brew-cask-completion"
 brew "broot"                                # A new way to see and navigate directory trees.
-brew "btop"
-brew "coreutils"
+brew "btop"                                 # Resources monitor. C++ version and continuation of bashtop and bpytop.
 brew "direnv"                               # Loads and unloads environment variables depending on the current directory.
 brew "diffr"                                # Reviewing changes involves reading diffs.
 # brew "dog"                                # Not maintained upstream.
-brew "duf"
-brew "dust"
-brew "eza"
-brew "fd"
-brew "fzf"
-brew "gpg"
+brew "duf"                                  # Disk Usage/Free Utility - a better 'df' alternative.
+brew "dust"                                 # A more intuitive version of du in rust.
+brew "eza"                                  # A modern alternative to ls.
+brew "fd"                                   # A simple, fast and user-friendly alternative to 'find'.
+brew "fzf"                                  # 🌸 A command-line fuzzy finder
+brew "gpg"                                  # The GNU Privacy Guard.
 brew "glow"                                 # Render markdown on the CLI.
 brew "hyperfine"                            # A command-line benchmarking tool, written in Rust.
 brew "jq"
-brew "keychain"
-brew "lazygit"
-brew "mas"
-brew "midnight-commander"
-brew "mkcert"
-brew "nushell"
-brew "nmap"
-brew "pinentry-mac"
+brew "keychain"                             # A user-friendly front-end to ssh-agent.
+brew "lazygit"                              # A simple terminal UI for git commands.
+brew "mas"                                  # 📦 A Mac App Store command line interface.
+brew "mkcert"                               # A simple zero-config tool to make locally trusted development certificates with any names you'd like.
+brew "nushell"                              # A new type of shell.
+brew "nmap"                                 # A port scanning utility for large networks.
+brew "pinentry-mac"                         # Pinentry for GPG on Mac.
 brew "portal"                               # Sends files from any computer to another.
 brew "ripgrep"                              # Recursive Regex search tool.
 brew "safe-rm"                              # Prevent the accidental deletion of important files.
 brew "sd"                                   # Intuitive find & replace CLI (sed alternative).
+brew "sponge"                               # A tool similar to tee, but soaks up all its input before opening the output file.
 brew "starship"                             # Starship cross-shell prompt.
-brew "stow"
-brew "teleport"
+brew "stow"                                 # A symlink farm manager.
+brew "teleport"                             # A modern SSH server for teams managing distributed infrastructure.
 brew "telnet"
 brew "termshark"                            # Provides a terminal-based user interface for analyzing packet captures.
 brew "terraform"
-brew "tldr"
+brew "tldr"                                 # A simplified and community-driven man pages.
 brew "tmux"
-brew "tpm"                                  # Plugin manager for tmux.
-brew "trash-cli"
+brew "tpm"                                  # A plugin manager for tmux.
+brew "trash-cli"                            # A command line interface to the trashcan.
 brew "tree"
-brew "vivid"
-brew "watch"
+brew "vivid"                                # A themeable LS_COLORS generator with a rich filetype datebase.
+brew "watch"                                # Executes a program periodically, showing output fullscreen.
 brew "wget"
 brew "xh"                                   # A friendly and fast tool for sending HTTP requests, written in Rust.
-brew "yazi"
+brew "yazi"                                 # 💥 A blazing fast terminal file manager written in Rust, based on async I/O.
 brew "yq"
-brew "zoxide"
+brew "zoxide"                               # A smarter cd command.
 
 # Terminal Fun
 brew "asciiquarium"
@@ -121,7 +120,7 @@ cask "docker"
 cask "jetbrains-toolbox"
 cask "kindle"
 cask "mitmproxy"                            # Intercepts, modifies, replays, saves HTTP/S traffic.
-cask "nikitabobko/tap/aerospace"            #  i3-like tiling window manager for macOS.
+cask "nikitabobko/tap/aerospace"            # i3-like tiling window manager for macOS.
 cask "nordvpn"
 cask "obsidian"
 cask "orbstack"                             # Fast, light, and simple way to run containers and Linux machines.
