@@ -51,6 +51,10 @@ Please follow these instructions to set up your Mac.
     ```
 
 4. Installation
+    Please check
+    * [Brew](https://github.com/architeacher/.dotfiles/blob/main/stow/.config/homebrew/Brewfile "Brew file") file to select the software to install.
+    * [.config](https://github.com/architeacher/.dotfiles/blob/main/stow/.config "Software config files") directory for the installed software that would be sym linked under `XDG_CONFIG_HOME:=~/.config` using GNU [Stow](https://www.gnu.org/software/stow/ "GNU Stow").
+
     To install, please run
     ```bash
     make install

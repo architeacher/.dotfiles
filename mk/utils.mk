@@ -35,7 +35,7 @@ list: ## to list all targets.
 
 .PHONY: print-%
 print-%: ## to print arbitrary variables use `print-VARNAME`
-	echo "$(DISCLAIMER_CLR)$*${NO_CLR} = $($*)"
+	printf "$(DISCLAIMER_CLR)$*${NO_CLR} = $($*)"
 
 .PHONY: stats
 stats: ## to output source statistics.
@@ -56,6 +56,6 @@ todo: $(ARTIFACTS_DIR) ## to output to-do items per file.
 		-inRo \
 		" $${todoPrefix}:.*" . )" ; \
 	if [ -n "$${todos}" ]; then \
-		echo "${ITEM_CLR}$${todos}${NO_CLR}"; \
-		echo "$${todos}" > "${ARTIFACTS_DIR}/TODOs.txt"; \
+		printf "${ITEM_CLR}$${todos}${NO_CLR}"; \
+		printf "$${todos}" > "${ARTIFACTS_DIR}/TODOs.txt"; \
 	fi

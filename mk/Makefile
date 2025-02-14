@@ -1,27 +1,19 @@
-.DEFAULT: default
-.DEFAULT_GOAL := default
-# Delete targets on nonzero exit status.
-.DELETE_ON_ERROR: ;
-.EXPORT_ALL_VARIABLES: ;
-.NOTPARALLEL: ;
-.ONESHELL: ;
-.SHELLFLAGS = -c
-
-# Unless ECHO_RECIPES is defined we do not echo the line of the recipes before they are executed.
-ifneq (true, ${ECHO_RECIPES})
-.SILENT: ;
-endif
-
-SHELL := /bin/bash
-
-# An empty, phony .FORCE target, that will cause external targets to always be built, so that the
-# Makefile there will handle dependencies.
-# https://gist.github.com/mschubert/a0e4f3aeaf3558431890
-.PHONY: .FORCE
-.FORCE: ;
-
 include mk/config/settings.mk
 include mk/*.mk
+
+define get_gpg_keys
+    [ -z "$(email)" ] && { printf "${ERROR_CLR}Email is missing, please set ${INFO_CLR}email${NO_CLR} ${ERROR_CLR}variable.${NO_CLR}" >&2; exit 1; } || true; \
+	SIGNING_KEY_ID="$$(gpg --list-keys --keyid-format LONG "$(email)" 2>/dev/null | rg '^pub' | awk '{print $$2}' | cut -d'/' -f2)"; \
+	[ -z "$${SIGNING_KEY_ID}" ] && { echo "${ERROR_CLR}Error: No GPG key found for ${email}${NO_CLR}" >&2; exit 1; }; \
+	echo "$${SIGNING_KEY_ID}"
+endef
+
+define get_gpg_secret_keys
+    [ -z "$(email)" ] && { printf "${ERROR_CLR} Email is missing, please set ${INFO_CLR}email${NO_CLR} ${ERROR_CLR}variable.${NO_CLR}" >&2; exit 1; } || true; \
+	SECRET_SIGNING_KEY_ID="$$(gpg --list-secret-keys --keyid-format LONG "${email}" 2>/dev/null | rg -A 1 '^sec' | rg '[0-9A-F]{40}' | xargs)"; \
+	[ -z "$${SECRET_SIGNING_KEY_ID}" ] && { echo "${ERROR_CLR}Error: No secret GPG key found for ${email}${NO_CLR}" >&2; exit 1; }; \
+	echo "$${SECRET_SIGNING_KEY_ID}"
+endef
 
 .PHONY: default
 default: help ## to run default target.
@@ -32,15 +24,35 @@ $(DOT_ENV): ## prepares a copy of the .env file.
 	[ ! -f "$@" ] && cp "$@.dist" "$@" || true
 
 .PHONY: install
-install: $(DOT_ENV)  ## to install .dotfiles.
-	bash scripts/install.sh -e ".env" -l 7
+install: $(DOT_ENV_FILE)  ## to install .dotfiles.
+	bash scripts/install.sh -e "${DOT_ENV_FILE}" -p "${PROFILE}" -l "${LOG_LEVEL}"
 
-.PHONY: install
+.PHONY: get-gpg-keys
+get-gpg-keys: ## gets the GPG keys IDs for a given email.
+	$(call get_gpg_keys)
+
+.PHONY: get-gpg-secret-keys
+get-gpg-secret-keys: ## gets the GPG secret keys IDs for a given email.
+	$(call get_gpg_secret_keys)
+
+.PHONY: get-gpg-public-key-string
+get-gpg-public-key-string: ## gets the GPG public key string for a giving GPG key.
+	echo "${USER} $(shell gpg --export-ssh-key "${signing_key_id}" 2>/dev/null)"
+
+.PHONY: delete-gpg-keys
+delete-gpg-keys: ## deletes the GPG keys IDs for a given email.
+	echo "$(shell make get-gpg-secret-keys email="${email}")" | xargs gpg --batch --delete-secret-keys --yes 2>&1; \
+	$(eval signing_key_id := "$(shell make get-gpg-keys email="${email}")")
+	echo "${signing_key_id}" | xargs gpg --batch --delete-keys --yes 2>&1; \
+	ZDOTDIR="$${XDG_CONFIG_HOME}/zsh"; \
+	rg -v "$(shell make get-gpg-public-key-string signing_key_id="${signing_key_id}")" ~/.ssh/allowed_singers | sponge ~/.ssh/allowed_singers; \
+	rg -v "${signing_key_id}" "$${ZDOTDIR}/local/keychain.zsh" | sponge "$${ZDOTDIR}/local/keychain.zsh";
+
+.PHONY: gpg-armor
 gpg-armor: ## gets the GPG key ID, in ASCII armor format for a given email.
-	key_id="$$(gpg --list-keys --keyid-format LONG "${email}" 2>/dev/null | rg '^pub' | awk '{print $$2}' | cut -d'/' -f2)"; \
-	gpg --armor --export "$${key_id}" | tee >(pbcopy) | { cat; }
+	gpg --armor --export "$(shell make get-gpg-keys email="${email}")" 2>/dev/null | tee >(pbcopy) | { cat; };
 
-.PHONY: install
+.PHONY: sel-install
 sel-install: ## to select and run a function from the installation file.
 	unset POSIXLY_CORRECT; \
 	script_file="scripts/install.sh"; \

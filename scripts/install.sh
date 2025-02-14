@@ -11,9 +11,22 @@ configure_git(){
     local email="${1}" \
           name="${2}" \
           signing_key_id="${3}" \
-          github_username="${4}"
+          github_username="${4}" \
+          config_path="${XDG_CONFIG_HOME}/git/${PROFILE}-config"
 
     log_debug "Configuring git with: ${name} <${email}>, signing_key = ${signing_key_id} \n Github user: ${github_username}"
+
+    case "${PROFILE}" in
+      private|work)
+        log_debug "Configuring ${PROFILE} git profile for ${email}"
+
+        cp "${XDG_CONFIG_HOME}/git/${PROFILE}-config.dist" "${config_path}"
+        sed -i '' "s|.*email.*|	email      = ${email}|g" "${config_path}"
+        sed -i '' "s|.*name.*|	name       = ${name}|g" "${config_path}"
+        sed -i '' "s|.*signingkey.*|	signingkey = ${signing_key_id}|g" "${config_path}"
+        return
+        ;;
+    esac
 
     git config --global user.name "${name}"
     git config --global user.email "${email}"
@@ -22,7 +35,16 @@ configure_git(){
 }
 
 create_dirs() {
-    mkdir -p "${XDG_STATE_HOME}/zsh/sessions"
+    local dirs=(
+        "${XDG_STATE_HOME}/zsh/sessions"
+    ) \
+    dir
+
+    for dir in "${!dirs[@]}"; do
+        log_debug "Creating directory: ${dirs[${dir}]}"
+
+        mkdir -p "${dirs[${dir}]}"
+    done
 }
 
 get_gpg_keys() {
@@ -30,7 +52,7 @@ get_gpg_keys() {
 
     log_debug "Fetching GPG public keys for ${email}"
 
-    gpg --list-keys --keyid-format LONG "${email}" | rg '^pub' | awk '{print $2}' | cut -d'/' -f2
+    gpg --list-keys --keyid-format LONG "${email}" 2>/dev/null | rg '^pub' | awk '{print $2}' | cut -d'/' -f2
 }
 
 get_gpg_secret_keys_fingerprints() {
@@ -38,16 +60,29 @@ get_gpg_secret_keys_fingerprints() {
 
     log_debug "Fetching GPG secret keys for ${email}"
 
-    gpg --list-secret-keys --keyid-format LONG "${email}" | rg -A 1 '^sec' | rg '[0-9A-F]{40}'
+    gpg --list-secret-keys --keyid-format LONG "${email}" 2>/dev/null | rg -A 1 '^sec' | rg '[0-9A-F]{40}' | xargs
+}
+
+get_gpg_public_key_string() {
+    local signing_key_id="${1}"
+
+    echo "${USER} $(gpg --export-ssh-key "${signing_key_id}" 2>/dev/null)"
 }
 
 delete_gpg_entries() {
-    local email="${1}"
+    local email="${1}" \
+          signing_key_id
 
     log_warning "Deleting GPG entries for: ${email}"
 
+    signing_key_id="$(get_gpg_keys "${email}")"
+
+    rg -v "$(get_gpg_public_key_string "${signing_key_id}")" ~/.ssh/allowed_singers | sponge ~/.ssh/allowed_singers
+    rg -v "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" | sponge "${ZDOTDIR}/local/keychain.zsh"
+
+    # Secret keys should be deleted first.
     get_gpg_secret_keys_fingerprints "${email}" | xargs gpg --batch --delete-secret-keys --yes
-    get_gpg_keys "${email}" | xargs gpg --batch --delete-keys --yes
+    echo "${signing_key_id}" | xargs gpg --batch --delete-keys --yes
 }
 
 create_gpg_agent_data_dir() {
@@ -110,6 +145,8 @@ create_gpg_key() {
 eoGpgKeyParmas
 
         key_id="$(get_gpg_keys "${email}" | head -n 1)"
+    } || {
+        log_debug "GPG key ${key_id} already exists for email: ${email}"
     }
 
     echo "${key_id}"
@@ -127,12 +164,37 @@ create_ssh_key() {
     ssh-keygen -f ~/.ssh/"${key_file}" -t "${key_type}" -N "${pass_phrase}" -C "${email}" -q <<<y >/dev/null 2>&1
 }
 
-configure_ssh() {
+create_ssh_keys() {
     local email="${1}" \
-          pass_phrase="${2}" \
-          signing_key_id="${3}"
+          pass_phrase="${2}"
 
-    log_info "Generating SSH Keys for ${email}..."
+    log_info "Generating SSH keys for ${email}..."
+
+    local keys=(
+        "ed25519"
+        "rsa"
+    ) \
+    key \
+    key_file \
+    public_key_string
+
+    for key in "${!keys[@]}"; do
+        key_file="id_${keys[${key}]}"
+
+        [ "${FORCE_REINSTALL}" == "true" ] || [ ! -f ~/.ssh/"${key_file}" ] && {
+            create_ssh_key "${key_file}" "${keys[${key}]}" "${pass_phrase}" "${email}"
+
+            continue
+        }
+
+        log_debug "SSH key ${key_file} already exists and FORCE_REINSTALL is not true. Skipping."
+    done
+}
+
+configure_ssh_keys() {
+    local signing_key_id="${1}"
+
+    log_info "Configuring SSH keys..."
 
     [ "${FORCE_REINSTALL}" == "true" ] && {
         echo "" >| ~/.ssh/allowed_singers
@@ -149,16 +211,13 @@ configure_ssh() {
     for key in "${!keys[@]}"; do
         key_file="id_${keys[${key}]}"
 
-        [ "${FORCE_REINSTALL}" == "true" ] || [ ! -f ~/.ssh/"${key_file}" ] && {
-            create_ssh_key "${key_file}" "${keys[${key}]}" "${pass_phrase}" "${email}"
-
-            public_key_string="${USER} $(cat "${HOME}/.ssh/${key_file}.pub")"
-            echo "${public_key_string}" | tee -a ~/.ssh/allowed_singers
+        [ "${FORCE_REINSTALL}" == "true" ] && [ -f ~/.ssh/"${key_file}" ] && {
+            echo "${USER} $(cat "${HOME}/.ssh/${key_file}.pub")" | tee -a ~/.ssh/allowed_singers
 
             continue
         }
 
-        log_debug "SSH key ${key_file} already exists and FORCE_REINSTALL is not true. Skipping."
+        log_notice "SSH key ${key_file} does not exist or FORCE_REINSTALL is not true. Skipping."
     done
 
     if [ -z "${signing_key_id}" ]
@@ -168,7 +227,7 @@ configure_ssh() {
 
     log_info "Exporting GPG key ${signing_key_id} as SSH key."
 
-    public_key_string="${USER} $(gpg --export-ssh-key "${signing_key_id}")"
+    public_key_string="$(get_gpg_public_key_string "${signing_key_id}")"
 
     ! rg -F "${public_key_string}" ~/.ssh/allowed_singers >/dev/null && {
         echo "${public_key_string}" | tee -a ~/.ssh/allowed_singers
@@ -178,7 +237,14 @@ configure_ssh() {
 configure_keychain() {
     local signing_key_id="${1}"
 
-    printf "%s" "#\!/usr/bin/env zsh\n\nkeychain --eval --agents gpg ${signing_key_id} >/dev/null 2>&1" >| "${ZDOTDIR}/local/keychain.zsh"
+    [ "${FORCE_REINSTALL}" == "true" ] && {
+        printf '%b' '#\!/usr/bin/env zsh\n\n' >| "${ZDOTDIR}/local/keychain.zsh"
+    }
+
+    ! rg -F "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" >/dev/null && {
+        printf '%b' "keychain --eval --agents gpg ${signing_key_id} >/dev/null 2>&1\n" >> "${ZDOTDIR}/local/keychain.zsh"
+    } || return 0
+
 }
 
 declare_global_vars() {
@@ -400,6 +466,10 @@ stow_config() {
     stow --adopt "${dir}"
 }
 
+update_submodules() {
+    git submodule update --init --rebase
+}
+
 usage() {
     local this="${1}"
 
@@ -419,10 +489,11 @@ parse_args() {
     ENV_FILE="${ENV_FILE:-.env}"
 
     local arg
-    while getopts "e:l:h?x" arg; do
+    while getopts "e:l:p:h?x" arg; do
         case "${arg}" in
             e) ENV_FILE="${OPTARG}" ;;
             l) LOG_LEVEL="${OPTARG}" ;;
+            p) PROFILE="${OPTARG}" ;;
             h | \?) usage "${0}" ;;
             x) set -x ;;
         esac
@@ -485,7 +556,7 @@ validate_args() {
     [ -z "${ENV_FILE+x}" ] && abort 'Missing -e {{ENV_FILE}}' || return 0
 }
 
-main() {
+prepare() {
     validate_bash
     trap_with_arg at_exit EXIT INT QUIT TERM
 
@@ -496,30 +567,49 @@ main() {
     declare_global_vars
 
     create_dirs
+}
 
+install() {
     install_brew
     install_brew_deps
+    install_apps_themes
+    install_nix_darwin
+
+    update_submodules
+}
+
+create() {
+    # shellcheck disable=SC2153
+    create_ssh_keys "${GIT_EMAIL}" "${PASS_PHRASE}"
+    create_gpg_key "${GIT_EMAIL}" "${GIT_USER}" "${PASS_PHRASE}"
+}
+
+configure() {
+    local signing_key_id="${1}"
 
     stow_config "./stow"
 
-    {
-        read -r signing_key_id
-    } <<< "$(create_gpg_key "${GIT_EMAIL}" "${GIT_USER}" "${PASS_PHRASE}")"
-
-    log_debug "Signing Key ID: ${signing_key_id}"
-
-    configure_ssh "${GIT_EMAIL}" "${PASS_PHRASE}" "${signing_key_id}"
+    # shellcheck disable=SC2153
+    configure_ssh_keys "${signing_key_id}"
     # shellcheck disable=SC2153
     configure_git "${GIT_EMAIL}" "${GIT_USER}" "${signing_key_id}" "${GITHUB_USERNAME}"
-    configure_keychain "${signing_key_id}"
 
-    install_apps_themes
+    configure_keychain "${signing_key_id}"
+}
+
+main() {
+    prepare "$@"
+    install
+
+    {
+        read -r signing_key_id
+    } <<< "$(create)"
+
+    configure "${signing_key_id}"
 
     start_services
 
     set_wallpapers "$(realpath "./wallpapers")"
-
-    install_nix_darwin
 }
 
 main "$@"

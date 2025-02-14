@@ -338,9 +338,9 @@
 #    insteadOf = https://github.com/
 
 [user]
-	email      = 1043964+architeacher@users.noreply.github.com
-	name       = Ahmed Kamal
-	signingkey = 27C075EFB70B41F1
+	email = 1043964+architeacher@users.noreply.github.com
+	name = Ahmed Kamal
+	signingkey = E1DE07617797C402
 
 # Includes should be after the values you want to overwrite.
 [includeIf "gitdir/i:~/private/"]

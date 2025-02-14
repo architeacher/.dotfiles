@@ -3,12 +3,14 @@
 /.vscode
 
 .env
+.env-*
 .zcompdump*
 *.lock.json
 *.log
 private-*
 work-*
 
+/stow/.config/atuin/
 /stow/.config/broot/
 /stow/.config/containers/
 /stow/.config/fsh/
