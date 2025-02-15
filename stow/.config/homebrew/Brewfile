@@ -32,7 +32,7 @@ brew "argocd"
 brew "helm"
 brew "k9s"
 brew "kind"
-brew "kubectx"                              # Switches between kubectl contexts easily and creates aliases.
+brew "kubectx"                              # 🕸️ Switches between kubectl contexts easily and creates aliases.
 
 # General tools
 brew "koekeishiya/formulae/skhd"            # 🥵 A simple hotkey daemon.

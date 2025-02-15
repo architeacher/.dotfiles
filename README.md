@@ -49,7 +49,7 @@ Please follow these instructions to set up your Mac.
     # Sginging Keys - make sure to escape $, in case of any.
     PASS_PHRASE="bottom.secret"
 
-    # Installation Profiles
+    # Installation profiles
     # The values can be one the following:
     # - private
     # - work

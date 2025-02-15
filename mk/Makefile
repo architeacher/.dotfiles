@@ -2,16 +2,16 @@ include mk/config/settings.mk
 include mk/*.mk
 
 define get_gpg_keys
-    [ -z "$(email)" ] && { printf "${ERROR_CLR}Email is missing, please set ${INFO_CLR}email${NO_CLR} ${ERROR_CLR}variable.${NO_CLR}" >&2; exit 1; } || true; \
+    [ -z "$(email)" ] && { printf "${ERR_CLR}Email is missing, please set ${INFO_CLR}email${NO_CLR} ${ERR_CLR}variable.${NO_CLR}" >&2; exit 1; } || true; \
 	SIGNING_KEY_ID="$$(gpg --list-keys --keyid-format LONG "$(email)" 2>/dev/null | rg '^pub' | awk '{print $$2}' | cut -d'/' -f2)"; \
-	[ -z "$${SIGNING_KEY_ID}" ] && { echo "${ERROR_CLR}Error: No GPG key found for ${email}${NO_CLR}" >&2; exit 1; }; \
+	[ -z "$${SIGNING_KEY_ID}" ] && { echo "${ERR_CLR}Error: No GPG key found for ${email}${NO_CLR}" >&2; exit 1; }; \
 	echo "$${SIGNING_KEY_ID}"
 endef
 
 define get_gpg_secret_keys
-    [ -z "$(email)" ] && { printf "${ERROR_CLR} Email is missing, please set ${INFO_CLR}email${NO_CLR} ${ERROR_CLR}variable.${NO_CLR}" >&2; exit 1; } || true; \
+    [ -z "$(email)" ] && { printf "${ERR_CLR} Email is missing, please set ${INFO_CLR}email${NO_CLR} ${ERR_CLR}variable.${NO_CLR}" >&2; exit 1; } || true; \
 	SECRET_SIGNING_KEY_ID="$$(gpg --list-secret-keys --keyid-format LONG "${email}" 2>/dev/null | rg -A 1 '^sec' | rg '[0-9A-F]{40}' | xargs)"; \
-	[ -z "$${SECRET_SIGNING_KEY_ID}" ] && { echo "${ERROR_CLR}Error: No secret GPG key found for ${email}${NO_CLR}" >&2; exit 1; }; \
+	[ -z "$${SECRET_SIGNING_KEY_ID}" ] && { echo "${ERR_CLR}Error: No secret GPG key found for ${email}${NO_CLR}" >&2; exit 1; }; \
 	echo "$${SECRET_SIGNING_KEY_ID}"
 endef
 
@@ -35,9 +35,12 @@ get-gpg-keys: ## gets the GPG keys IDs for a given email.
 get-gpg-secret-keys: ## gets the GPG secret keys IDs for a given email.
 	$(call get_gpg_secret_keys)
 
-.PHONY: get-gpg-public-key-string
-get-gpg-public-key-string: ## gets the GPG public key string for a giving GPG key.
-	echo "${USER} $(shell gpg --export-ssh-key "${signing_key_id}" 2>/dev/null)"
+.PHONY: get-gpg-ssh-key
+get-gpg-ssh-key: ## exports the GPG public key in ssh key format.
+	signing_key_id="${signing_key_id}"; \
+    [ -n "$${signing_key_id}" ] || { signing_key_id="$(shell make get-gpg-keys email="${email}")"; }; \
+    [ -n "$${signing_key_id}" ] || { printf "Error: Either 'signing_key_id' or 'email' must be provided." >&2; exit 1; }; \
+	echo "${USER} $$(gpg --export-ssh-key "$${signing_key_id}" 2>/dev/null)"
 
 .PHONY: delete-gpg-keys
 delete-gpg-keys: ## deletes the GPG keys IDs for a given email.
@@ -45,7 +48,7 @@ delete-gpg-keys: ## deletes the GPG keys IDs for a given email.
 	$(eval signing_key_id := "$(shell make get-gpg-keys email="${email}")")
 	echo "${signing_key_id}" | xargs gpg --batch --delete-keys --yes 2>&1; \
 	ZDOTDIR="$${XDG_CONFIG_HOME}/zsh"; \
-	rg -v "$(shell make get-gpg-public-key-string signing_key_id="${signing_key_id}")" ~/.ssh/allowed_singers | sponge ~/.ssh/allowed_singers; \
+	rg -v "$(shell make get-gpg-ssh-key signing_key_id="${signing_key_id}")" ~/.ssh/allowed_singers | sponge ~/.ssh/allowed_singers; \
 	rg -v "${signing_key_id}" "$${ZDOTDIR}/local/keychain.zsh" | sponge "$${ZDOTDIR}/local/keychain.zsh";
 
 .PHONY: gpg-armor
