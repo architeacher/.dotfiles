@@ -100,7 +100,7 @@ update_pinentry_path() {
 
     pinentry_path="$(which pinentry-mac)"
 
-    ! rg "${pinentry_path}" "${gpg_agent_config_file}" >/dev/null && {
+    [ "${pinentry_path}" != "" ] && ! rg "${pinentry_path}" "${gpg_agent_config_file}" >/dev/null && {
         echo "pinentry-program ${pinentry_path}" | tee -a "${gpg_agent_config_file}" >/dev/null
         killall gpg-agent
     }
@@ -146,7 +146,7 @@ eoGpgKeyParmas
 
         key_id="$(get_gpg_keys "${email}" | head -n 1)"
     } || {
-        log_debug "GPG key ${key_id} already exists for email: ${email}"
+        log_info "GPG key ${key_id} already exists for email: ${email}"
     }
 
     echo "${key_id}"
@@ -210,8 +210,9 @@ configure_ssh_keys() {
 
     for key in "${!keys[@]}"; do
         key_file="id_${keys[${key}]}"
+        public_key_string="$(cat "${HOME}/.ssh/${key_file}.pub")"
 
-        [ "${FORCE_REINSTALL}" == "true" ] && [ -f ~/.ssh/"${key_file}" ] && {
+        [ "${FORCE_REINSTALL}" == "true" ] || ! rg -F "${public_key_string}" ~/.ssh/allowed_singers >/dev/null && {
             echo "${USER} $(cat "${HOME}/.ssh/${key_file}.pub")" | tee -a ~/.ssh/allowed_singers
 
             continue
@@ -237,8 +238,8 @@ configure_ssh_keys() {
 configure_keychain() {
     local signing_key_id="${1}"
 
-    [ "${FORCE_REINSTALL}" == "true" ] && {
-        printf '%b' '#\!/usr/bin/env zsh\n\n' >| "${ZDOTDIR}/local/keychain.zsh"
+    [ "${FORCE_REINSTALL}" == "true" ] || [ ! -f "${ZDOTDIR}/local/keychain.zsh" ] && {
+        printf '%b' '#!/usr/bin/env zsh\n\n' >| "${ZDOTDIR}/local/keychain.zsh"
     }
 
     ! rg -F "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" >/dev/null && {
@@ -262,7 +263,8 @@ declare_global_vars() {
 install_brew() {
     log_info "Installing Homebrew for you."
 
-    if [ "${FORCE_REINSTALL}" == "true" ] || ! command -v brew > /dev/null 2>&1
+    # @see: scripts/common.sh
+    if [ "${FORCE_REINSTALL}" == "true" ] || ! is_command brew > /dev/null 2>&1
     then
         bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -281,7 +283,7 @@ install_brew_deps() {
         "--file" "./stow/.config/homebrew/Brewfile"
     )
 
-    if [ "${FORCE_REINSTALL}" == "false" ]
+    if [ "${FORCE_REINSTALL}" == "true" ]
     then
         opts+=("-f")
     fi
@@ -557,12 +559,14 @@ validate_args() {
 }
 
 prepare() {
+    # @see: scripts/common.sh
     validate_bash
     trap_with_arg at_exit EXIT INT QUIT TERM
 
     parse_args "$@"
     validate_args
 
+    # @see: scripts/common.sh
     include_env_vars "${ENV_FILE}"
     declare_global_vars
 
@@ -572,6 +576,10 @@ prepare() {
 install() {
     install_brew
     install_brew_deps
+
+    # Stowing is necessary here, for bat theme config file.
+    stow_config "./stow"
+
     install_apps_themes
     install_nix_darwin
 
@@ -586,8 +594,6 @@ create() {
 
 configure() {
     local signing_key_id="${1}"
-
-    stow_config "./stow"
 
     # shellcheck disable=SC2153
     configure_ssh_keys "${signing_key_id}"

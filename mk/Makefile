@@ -18,9 +18,8 @@ endef
 .PHONY: default
 default: help ## to run default target.
 
-DOT_ENV := .env
-
-$(DOT_ENV): ## prepares a copy of the .env file.
+.PHONY: .env
+.env: ## prepares a copy of the .env file.
 	[ ! -f "$@" ] && cp "$@.dist" "$@" || true
 
 .PHONY: install

@@ -53,6 +53,7 @@ brew "bottom"                               # 🖥️ A monitor of resources. Ru
 brew "brew-cask-completion"
 brew "broot"                                # 🌴 A new way to see and navigate directory trees.
 brew "btop"                                 # 📊 Resources monitor. C++ version and continuation of bashtop and bpytop.
+brew "coreutils"                            # ☢️ A list of commands from the GNU Core Utilities https://en.wikipedia.org/wiki/List_of_GNU_Core_Utilities_commands#File_Utilities.
 brew "direnv"                               # 🗂️ Loads and unloads environment variables depending on the current directory.
 brew "diffr"                                # ➖ Reviewing changes involves reading diffs.
 # brew "dog"                                # Not maintained upstream.
@@ -60,6 +61,7 @@ brew "duf"                                  # 💾 Disk Usage/Free Utility - a b
 brew "dust"                                 # 💿 A more intuitive version of du in rust.
 brew "eza"                                  # 📋 A modern alternative to ls.
 brew "fd"                                   # 🔎 A simple, fast and user-friendly alternative to 'find'.
+brew "sketchybar"                           # ✨ Creates a highly flexible, customizable, and fast status bar replacement.
 brew "fzf"                                  # 🌸 A command-line fuzzy finder
 brew "gpg"                                  # 🛡️ The GNU Privacy Guard.
 brew "glow"                                 # ☑️ Render markdown on the CLI.
@@ -117,13 +119,11 @@ cask "chatgpt"
 cask "dropbox"
 cask "docker"
 cask "jetbrains-toolbox"
-cask "kindle"
 cask "mitmproxy"                            # Intercepts, modifies, replays, saves HTTP/S traffic.
 cask "nikitabobko/tap/aerospace"            # i3-like tiling window manager for macOS.
 cask "nordvpn"
 cask "obsidian"
 cask "orbstack"                             # ⚡️ Fast, light, and simple way to run containers and Linux machines.
-cask "sketchybar"                           # ✨ Creates a highly flexible, customizable, and fast status bar replacement.
 cask "podman-desktop"
 cask "postman"
 # cask "raycast"

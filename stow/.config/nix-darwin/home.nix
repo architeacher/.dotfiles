@@ -5,8 +5,8 @@
 
 {
     home = {
-        username = "ahmed";
-        homeDirectory = "/Users/ahmed";
+        username = "architeacher";
+        homeDirectory = "/Users/architeacher";
     };
 
     # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
@@ -19,7 +19,7 @@
     # Home Manager is pretty good at managing dotfiles. The primary way to manage
     # plain files is through 'home.file'.
     home.file = {
-        # ".config/nix-darwin".source = /Users/ahmed/.dotfiles/stow/.config/nix-darwin;
+        # ".config/nix-darwin".source = /Users/architeacher/.dotfiles/stow/.config/nix-darwin;
     };
 
     home.sessionVariables = {

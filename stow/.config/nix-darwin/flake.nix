@@ -68,11 +68,11 @@
                 finder.AppleShowAllExtensions   = true;
                 finder.FXPreferredViewStyle     = "clmv";
                 loginwindow.LoginwindowText     = "Architeacher-Portal";
-                screencapture.location          = "/Users/ahmed/Pictures/screenshots";
+                screencapture.location          = "/Users/architeacher/Pictures/screenshots";
                 screensaver.askForPasswordDelay = 10;
             };
 
-            users.users.ahmed.home = "/Users/ahmed";
+            users.users.architeacher.home = "/Users/architeacher";
 
             # Homebrew needs to be installed on its own!
             homebrew.enable = true;
@@ -93,9 +93,9 @@
             modules = [
 	            configuration
                 home-manager.darwinModules.home-manager {
-                    home-manager.useGlobalPkgs   = true;
-                    home-manager.useUserPackages = true;
-                    home-manager.users.ahmed     = import ./home.nix;
+                    home-manager.useGlobalPkgs      = true;
+                    home-manager.useUserPackages    = true;
+                    home-manager.users.architeacher = import ./home.nix;
                 }
             ];
         };
