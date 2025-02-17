@@ -18,7 +18,9 @@ Please follow these instructions to set up your Mac.
    ```bash
    curl https://raw.githubusercontent.com/architeacher/.dotfiles/HEAD/scripts/download.sh | bash
    ```
+    The script might be failing due to the missing command line developer tools installation, so please install it first, then run the script again.
 
+    ![developer_tools.png](assets/developer_tools.png)
 2. Prerequisites
     We will use `make` for the installation to get help
 
