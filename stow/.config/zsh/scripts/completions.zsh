@@ -1,12 +1,21 @@
 #!/usr/bin/env zsh
 
+# +----------+
+# | Carapace |
+# +----------+
+
+# shellcheck disable=SC2154
+(( $+commands[carapace] )) && {
+    zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
+    zstyle ':completion:*:git:*' group-order 'main commands' 'alias commands' 'external commands'
+}
+
 # +---------+
 # | zstyles |
 # +---------+
 
 # Ztyle pattern
 # :completion:<function>:<completer>:<command>:<argument>:<tag>
-
 
 # +----------------+
 # | Fuzzy Matching |

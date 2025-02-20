@@ -40,6 +40,12 @@ export BAT_THEME="Catppuccin Mocha"
 # | COMPLETIONS |
 # +-------------+
 
+# carapace
+# shellcheck disable=SC2154
+(( $+commands[carapace] )) &&  {
+    export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
+}
+
 # Don't offer history completion; we have fzf, C-r, and
 # zsh-history-substring-search for that.
 #ZSH_AUTOSUGGEST_STRATEGY=(completion)

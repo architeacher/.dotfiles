@@ -36,6 +36,7 @@ brew "kubectx"                              # 🕸️ Switches between kubectl c
 
 # General tools
 brew "koekeishiya/formulae/skhd"            # 🥵 A simple hotkey daemon.
+brew "koekeishiya/formulae/yabai"           # 🪟A tiling window manager for macOS based on binary space partitioning.
 brew "mosh"                                 # 🕹️ Remote terminal application that allows roaming.
 
 # Security
@@ -70,6 +71,7 @@ brew "jq"
 brew "keychain"                             # 🔐 A user-friendly front-end to ssh-agent.
 brew "lazygit"                              # 💤 A simple terminal UI for git commands.
 brew "mas"                                  # 📦 A Mac App Store command line interface.
+brew "midnight-commander"                   # 🌃 A visual file manager.
 brew "mkcert"                               # 🎓 A simple zero-config tool to make locally trusted development certificates with any names you'd like.
 brew "nushell"                              # 🐚 A new type of shell.
 brew "nmap"                                 # 🕵️‍♂️ A port scanning utility for large networks.
@@ -117,7 +119,7 @@ brew "zsh-history-substring-search"
 cask "caffeine"                             # ☕️ Prevents the system from going to sleep.
 cask "chatgpt"
 cask "dropbox"
-cask "docker"
+cask "deepl"                                # 🤖Translator.
 cask "jetbrains-toolbox"
 cask "mitmproxy"                            # Intercepts, modifies, replays, saves HTTP/S traffic.
 cask "nikitabobko/tap/aerospace"            # i3-like tiling window manager for macOS.

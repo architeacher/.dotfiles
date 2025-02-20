@@ -449,8 +449,8 @@ set_wallpapers() {
 }
 
 start_services() {
-    # Starting skhd
     skhd --start-service
+    yabai --start-service
 }
 
 stow_config() {
