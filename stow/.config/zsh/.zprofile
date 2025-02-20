@@ -21,6 +21,7 @@ type keychain >/dev/null 2>&1 && {
 
     [ -f "${ZDOTDIR}/local/keychain.zsh" ] && source "${ZDOTDIR}/local/keychain.zsh"
 }
+
 [ -f ~/.orbstack/shell/init.zsh ] && {
     # Added by OrbStack: command-line tools and integration
     # Comment this line if you don't want it to be added again.

@@ -206,7 +206,7 @@ alias rm='rm -I'
 # Safer reversible file removal: https://github.com/sindresorhus/trash-cli
 which trash > /dev/null 2>&1 && {
     alias purge='unalias rm && sudo rm -rf ${XDG_DATA_HOME}/Trash/*; alias rm="trash -i"'
-    alias rm='trash -i'
+    alias rm='trash'
 }
 
 # +-----+
