@@ -55,6 +55,9 @@
     header    = white dim
     untracked = cyan
 
+[column]
+    ui = auto
+
 [core]
     # Global `.gitattributes`
     attributesfile = ~/.config/git/attributes
@@ -108,7 +111,7 @@
 
     # Specify template file for new commit messages.
     template = ~/.config/git/message.txt
-    verbose  = false
+    verbose  = true
 
 [credential]
     helper = cache --timeout 30000
@@ -127,8 +130,9 @@
 [diff]
     # Use more time to create better diffs.
     # E.g. matching opening/closing braces from neighbour functions.
-    # See "`git help diff` --patience" and "`git help merge` recursive".
-    algorithm = patience
+    # See "`git help diff` --histogram" and "`git help merge` recursive".
+    # Histogram algorithm extends the patience algorithm to "support low-occurrence common elements".
+    algorithm = histogram
 
     color      = auto
     colorMoved = default
@@ -138,7 +142,9 @@
     # patch easier to read.
     compactionHeuristic = true
 
-    pager = diffr | less -R
+    # Uses a prefix pair that is different from the standard "a/" and "b/" depending on what is being compared.
+    mnemonicPrefix = true
+    pager          = diffr | less -R
 
     # Tells git to detect renames. If set to any boolean value,
     # it will enable basic rename detection. If set to "copies" or "copy",
@@ -165,8 +171,11 @@
 	cmd = code --wait --diff $LOCAL $REMOTE
 
 [fetch]
+    all = true
+
     # Remove any remote-tracking references that no longer exist on the remote.
-    prune = true
+    prune     = true
+    pruneTags = true
 
 [filter "lfs"]
     # Specify the command to convert a worktree file's content to a blob upon checkin.
@@ -200,7 +209,7 @@
 
 [help]
     # Automatically correct and execute mistyped commands.
-    autocorrect = 1
+    autocorrect = prompt
 
     autocorrect = 10
     # e.g.: $ git lgo
@@ -290,8 +299,11 @@
     # Use --autostash when running git pull --rebase and when rebasing interactively
     autoStash = true
 
+    updateRefs = true
+
 [rerere]
-    enabled = true
+    autoupdate = true
+    enabled    = true
 
 [status]
     showuntrackedfiles = all
@@ -305,6 +317,7 @@
 
 [tag]
 	gpgSign = true
+	sort    = version:refname
 
 [ui "color"]
     ui = always
