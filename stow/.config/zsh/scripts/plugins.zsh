@@ -13,6 +13,6 @@ plugins=(
 )
 
 for plugin_path in "${plugins[@]}"; do
-	# shellcheck disable=SC1090
-	[ -r "${plugin_path}" ] && source "${plugin_path}" 2>&1;
+    # shellcheck disable=SC1090
+    [ -r "${plugin_path}" ] && source "${plugin_path}" 2>&1;
 done
