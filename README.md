@@ -75,11 +75,11 @@ Suggestions/improvements are
 
 ## Thanks to…
 
-* [AhmedSoliman](https://github.com/AhmedSoliman "Ahmed Farghal") and his [dotfiles repository](https://github.com/AhmedSoliman/dotfiles)
-* [omerxx](https://github.com/omerxx "Omer Hamerman") and his [dotfiles repository](https://github.com/omerxx/dotfiles)
-* [ThePrimeagen](https://github.com/ThePrimeagen "ThePrimeagen") and his [dotfiles repository](https://github.com/ThePrimeagen/.dotfiles)
-* [renemarc](https://github.com/renemarc "René-Marc Simard") and his [dotfiles repository](https://github.com/renemarc/dotfiles)
-* [voku](https://github.com/voku "Lars Moelleken") and his [dotfiles repository](https://github.com/voku/dotfiles)
+* [AhmedSoliman](https://github.com/AhmedSoliman "Ahmed Farghal") and his [dotfiles repository](https://github.com/AhmedSoliman/dotfiles).
+* [omerxx](https://github.com/omerxx "Omer Hamerman") and his [dotfiles repository](https://github.com/omerxx/dotfiles).
+* [ThePrimeagen](https://github.com/ThePrimeagen "ThePrimeagen") and his [dotfiles repository](https://github.com/ThePrimeagen/.dotfiles).
+* [renemarc](https://github.com/renemarc "René-Marc Simard") and his [dotfiles repository](https://github.com/renemarc/dotfiles).
+* [voku](https://github.com/voku "Lars Moelleken") and his [dotfiles repository](https://github.com/voku/dotfiles).
 * Anyone who [contributed a patch](https://github.com/architeacher/.dotfiles/contributors).
 
 Thanks geeks 🚀
