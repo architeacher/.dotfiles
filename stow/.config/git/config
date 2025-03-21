@@ -1,6 +1,6 @@
 [advice]
     addEmptyPathspec = false
-	detachedHead     = false
+    detachedHead     = false
 
 [apply]
     # detect whitespace errors when applying a patch
@@ -10,8 +10,8 @@
     #whitespace = fix
 
 [branch]
-	# Show most recently changed branches first.
-	sort = -committerdate
+    # Show most recently changed branches first.
+    sort = -committerdate
 
 [color]
     branch      = auto
@@ -168,7 +168,7 @@
     textconv = hexdump -v -C
 
 [difftool "vscode"]
-	cmd = code --wait --diff $LOCAL $REMOTE
+    cmd = code --wait --diff $LOCAL $REMOTE
 
 [fetch]
     all = true
@@ -194,14 +194,14 @@
     signOff = true
 
 [github]
-	user = architeacher
+    user = architeacher
 
 [gpg]
     # Default is "openpgp". Other possible values are "x509", "ssh".
     format = openpgp
 
 [gpg "ssh"]
-	allowedSignersFile = ~/.ssh/allowed_signers
+    allowedSignersFile = ~/.ssh/allowed_signers
 
 [grep]
     extendRegexp = true
@@ -218,8 +218,8 @@
     # in 1.0 seconds automatically...
 
 [include]
-	path = "~/.config/git/alias"
-	path = "~/.config/git/catppuccin.gitconfig"
+    path = "~/.config/git/alias"
+    path = "~/.config/git/catppuccin.gitconfig"
 
 [init]
     defaultBranch = main
@@ -246,21 +246,21 @@
 
 [mergetool]
     # No *.orig files left when using mergetool.
-	keepBackup = false
+    keepBackup = false
 
 [mergetool "nvim"]
     cmd = nvim -f -c \"Gdiff\" \"${MERGED}\"
 
 [mergetool "vscode"]
-	cmd = code --wait $MERGED
+    cmd = code --wait $MERGED
 
 [pager]
-	branch = false
+    branch = false
     color  = true
-	diff   = delta
-	log    = diffr | less -R
-	reflog = diffr | less -R
-	show   = diffr | less -R
+    diff   = delta
+    log    = diffr | less -R
+    reflog = diffr | less -R
+    show   = diffr | less -R
 
 [pull]
     ff      = "only"
@@ -291,7 +291,7 @@
     followTags = true
 
 [rebase]
-	abbreviateCommands = true
+    abbreviateCommands = true
 
     # Use --autosquash by default. It's not like one would write !fixup message by accident.
     autoSquash = true
@@ -313,11 +313,11 @@
 
 [submodule]
     fetchJobs = 3
-	recurse   = true
+    recurse   = true
 
 [tag]
-	gpgSign = true
-	sort    = version:refname
+    gpgSign = true
+    sort    = version:refname
 
 [ui "color"]
     ui = always
@@ -351,9 +351,9 @@
 #    insteadOf = https://github.com/
 
 [user]
-	email = 1043964+architeacher@users.noreply.github.com
-	name = Ahmed Kamal
-	signingkey = E1DE07617797C402
+    email = 1043964+architeacher@users.noreply.github.com
+    name = Ahmed Kamal
+    signingkey = 9E43A868E442541F
 
 # Includes should be after the values you want to overwrite.
 [includeIf "gitdir/i:~/private/"]

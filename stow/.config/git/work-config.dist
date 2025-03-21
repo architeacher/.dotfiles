@@ -1,4 +1,4 @@
 [user]
-	email      = john.doe@foo.bar
-	name       = John Doe
-	signingkey = 4BA43C7BEBD17563
+    email      = john.doe@foo.bar
+    name       = John Doe
+    signingkey = 4BA43C7BEBD17563

@@ -12,7 +12,7 @@ brew "dotenvx/brew/dotenvx"
 brew "git"
 brew "git-delta"
 brew "go"
-brew "gpg"
+brew "gpg"                                  # 🛡️ The GNU Privacy Guard, used for encryption and signing of messages or data.
 brew "graphviz"
 brew "grpcui"
 brew "grpcurl"
@@ -45,7 +45,7 @@ brew "nikto"                                # 🌐 Web server scanner.
 
 # Terminal Tools
 brew "age"                                  # 👴 A modern and secure file encryption tool.
-brew "atac"                                 # Arguably a Terminal API Client (like postman).
+brew "atac"                                 # ✉️ Arguably a Terminal API Client (like postman).
 brew "atuin"                                # 📜 Replaces your existing shell history with a SQLite database.
 brew "bash"                                 # 🐣 Bourne again shell.
 brew "bash-completion"                      # Auto completions for `bash`.
@@ -64,8 +64,7 @@ brew "eza"                                  # 📋 A modern alternative to ls.
 brew "fd"                                   # 🔎 A simple, fast and user-friendly alternative to 'find'.
 brew "sketchybar"                           # ✨ Creates a highly flexible, customizable, and fast status bar replacement.
 brew "fzf"                                  # 🌸 A command-line fuzzy finder
-brew "gpg"                                  # 🛡️ The GNU Privacy Guard.
-brew "glow"                                 # ☑️ Render markdown on the CLI.
+brew "glow"                                 # ✨ Render markdown on the CLI.
 brew "hyperfine"                            # 🏇 A command-line benchmarking tool, written in Rust.
 brew "jq"
 brew "keychain"                             # 🔐 A user-friendly front-end to ssh-agent.
@@ -137,9 +136,9 @@ cask "visual-studio-code"
 cask "zed"
 
 # Terminals
-cask "ghostty"
-cask "warp"
-cask "wezterm"
+cask "ghostty"                              # 👻An ultra fast terminal emulator.
+cask "warp"                                 # 🎁 An AI friendly terminal emulator.
+cask "wezterm"                              # 🧙‍♂️A wizzard terminal emulator.
 
 # Fonts - Nerd fonts for the terminal - https://www.nerdfonts.com/
 cask "font-comic-shanns-mono-nerd-font"     # ComicShannsMono Nerd Font

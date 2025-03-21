@@ -217,7 +217,7 @@ which xh > /dev/null 2>&1 && {
     alias http='xh'
     # One of @janmoesen’s ProTip™s
     for method in GET HEAD POST PUT DELETE TRACE OPTIONS; do
-    	# shellcheck disable=SC2139
-    	alias "${method}"="xh ${method}"
+        # shellcheck disable=SC2139
+        alias "${method}"="xh ${method}"
     done
 }
