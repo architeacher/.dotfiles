@@ -1,9 +1,26 @@
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Output of the go coverage tool, log files
+*.log
+.*log
+
 /.idea
 /.vscode
 
 .env
 .env-*
+.envrc
+.envrc-*
 .zcompdump*
 *.lock.json
 *.log
@@ -35,5 +52,7 @@ themes/
 !*.y*ml
 !*.toml
 !Brewfile
+!Brewfile-private
+!Brewfile-work
 !conf.d/
 !config

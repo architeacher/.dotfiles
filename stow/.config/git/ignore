@@ -82,3 +82,11 @@ dependency-graph.svg
 
 .git/
 *.orig
+
+###########
+# AI Tool #
+##########
+
+AGENTS.md
+CLAUDE.md
+**/.claude/

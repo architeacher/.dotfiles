@@ -1,4 +1,8 @@
-XDG_CACHE_HOME = os.getenv("XDG_CACHE_HOME")
+local xdg_cache_home = os.getenv("XDG_CACHE_HOME")
+if not xdg_cache_home or xdg_cache_home == "" then
+    xdg_cache_home = vim.fn.stdpath("cache")
+end
+vim.env.XDG_CACHE_HOME = xdg_cache_home
 
 -- [[ Basic Keymaps ]]
 -- Set <space> as the leader key
@@ -19,7 +23,7 @@ opt.autochdir      = true -- Change working directory to open buffer.
 opt.autoread       = true -- Reload file if changed outside of vim.
 opt.autowrite      = true
 opt.autowriteall   = true -- Auto-write all file changes
-opt.backupdir      = { XDG_CACHE_HOME .. "/vim-tmp", XDG_CACHE_HOME .. "./tmp", XDG_CACHE_HOME .. "/tmp" }
+opt.backupdir      = { xdg_cache_home .. "/vim-tmp", xdg_cache_home .. "./tmp", xdg_cache_home .. "/tmp" }
 opt.backspace      = { "indent", "eol", "start" } -- Controls backspace behaviour on indent, end of line or insert mode start position.
 opt.breakindent    = true      -- Enables break indent.
 opt.cindent        = true      -- Uses 'C' style program indenting.
@@ -29,7 +33,7 @@ opt.completeopt    = { "menu", "menuone", "noselect" } -- Set completeopt to hav
 opt.conceallevel   = 2     -- Concealer for Neorg
 opt.confirm        = true  -- Prompts confirmation dialogs.
 opt.cursorline     = true
-opt.directory      = { XDG_CACHE_HOME .. "/vim-tmp", XDG_CACHE_HOME .. "./tmp", XDG_CACHE_HOME .. "/tmp" }
+opt.directory      = { xdg_cache_home .. "/vim-tmp", xdg_cache_home .. "./tmp", xdg_cache_home .. "/tmp" }
 opt.encoding       = 'utf-8'
 opt.errorbells     = true  -- Beeps or flash screen on errors
 ---- Folds
@@ -77,7 +81,7 @@ opt.textwidth     = 100	  -- Line wrap (number of cols)
 opt.termguicolors = true  -- Set termguicolors to enable highlight groups.
 opt.timeoutlen    = 300
 opt.title         = true  -- Update terminal title
-opt.undodir       = XDG_CACHE_HOME .. "/vim/undo-dir"
+opt.undodir       = xdg_cache_home .. "/vim/undo-dir"
 opt.undofile      = true
 opt.undolevels    = 10000  -- Max number of undo levels for the changes the can be undone.
 opt.undoreload    = 100000 -- max number of lines to save for undo on a buffer reload
@@ -120,17 +124,15 @@ vim.g.secure_modelines_allowed_items = {
     "colorcolumn"
 }
 
----- Undos, TODO: Migrate to lua
-vim.cmd([[
-  " Let's save undo info!
-  if !isdirectory($XDG_CACHE_HOME."/vim")
-    call mkdir($XDG_CACHE_HOME."/vim", "", 0770)
-  endif
-  if !isdirectory($XDG_CACHE_HOME."/vim/undo-dir")
-    call mkdir($XDG_CACHE_HOME."/vim/undo-dir", "", 0700)
-  endif
-]])
-
+-- Ensure undo directories exist.
+local undo_root = xdg_cache_home .. "/vim"
+local undo_dir = undo_root .. "/undo-dir"
+if vim.fn.isdirectory(undo_root) == 0 then
+    vim.fn.mkdir(undo_root, "p", 504)
+end
+if vim.fn.isdirectory(undo_dir) == 0 then
+    vim.fn.mkdir(undo_dir, "p", 448)
+end
 
 vim.g.tmux_resizer_no_mappings = 0 -- Fix tmux resizing
 

@@ -48,16 +48,16 @@ get_profile() {
     case "${SHELL}" in
         */bash*)
             [ -r "${HOME}/.bash_profile" ] && shell_profile="${HOME}/.bash_profile" || shell_profile="${HOME}/.profile"
-        ;;
+            ;;
         */zsh*)
             shell_profile="${ZDOTDIR:-"${HOME}"}/.zprofile"
-        ;;
+            ;;
         */fish*)
             shell_profile="${HOME}/.config/fish/config.fish"
-        ;;
+            ;;
         *)
             shell_profile="${HOME}/.profile"
-        ;;
+            ;;
     esac
 
     print "${shell_profile}"

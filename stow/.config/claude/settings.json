@@ -1,0 +1,111 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(buf:*)",
+            "Bash(cat:*)",
+            "Bash(chmod:*)",
+            "Bash(curl:*)",
+            "Bash(docker:*)",
+            "Bash(jq:*)",
+            "Bash(ln:*)",
+            "Bash(ls:*)",
+            "Bash(git cherry-pick:*)",
+            "Bash(git log:*)",
+            "Bash(git mv:*)",
+            "Bash(git reset:*)",
+            "Bash(git rm:*)",
+            "Bash(go:*)",
+            "Bash(gofmt:*)",
+            "Bash(lsof:*)",
+            "Bash(make:*)",
+            "Bash(rg:*)",
+            "Bash(rm:*)",
+            "Bash(tree:*)",
+            "WebFetch(domain:*.github.com)",
+            "WebFetch(domain:raw.githubusercontent.com)",
+            "WebFetch(domain:*.medium.com)",
+            "WebSearch",
+            "mcp__ide__getDiagnostics",
+            "mcp__playwright"
+        ],
+        "ask": [
+            "Bash(git add:*)",
+            "Bash(git commit:*)",
+            "Bash(git merge:*)",
+            "Bash(git rebase:*)",
+            "Bash(git reset:*)",
+            "Bash(git push:*)",
+            "Bash(git push --force-with-lease)"
+        ],
+        "deny": [
+            "Bash(git push --force)"
+        ],
+        "defaultMode": "plan"
+    },
+    "model": "opus",
+    "hooks": {
+        "Stop": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "voices=(\"Bells\" \"Bubbles\" \"Cellos\" \"Good\" \"Tarek\" \"Zarvox\"); say -v \"${voices[RANDOM % ${#voices[@]}]}\" \"Mission Accomplished\";"
+                    },
+                    {
+                        "type": "command",
+                        "command": "afplay \"${XDG_CONFIG_HOME}/claude/hooks/super-mario-stage-win-sound-effect.mp3\";"
+                    },
+                    {
+                        "type": "command",
+                        "command": "open \"raycast://confetti\";"
+                    }
+                ]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "afplay \"${XDG_CONFIG_HOME}/claude/hooks/super-mario-bros-underground-sound effect.mp3\""
+                    }
+                ]
+            }
+        ],
+        "SubagentStop": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "afplay \"${XDG_CONFIG_HOME}/claude/hooks/mario-fart-sound-effect.mp3\""
+                    }
+                ]
+            }
+        ]
+    },
+    "statusLine": {
+        "type": "command",
+        "command": "${XDG_CONFIG_HOME}/claude/status_line.sh"
+    },
+    "enabledPlugins": {
+        "code-review@claude-plugins-official": true,
+        "context7@claude-plugins-official": true,
+        "playwright@claude-plugins-official": true,
+        "explanatory-output-style@claude-plugins-official": true,
+        "learning-output-style@claude-plugins-official": true,
+        "gopls-lsp@claude-plugins-official": true,
+        "rust-analyzer-lsp@claude-plugins-official": true,
+        "security-guidance@claude-plugins-official": true,
+        "frontend-design@claude-plugins-official": true,
+        "code-simplifier@claude-plugins-official": true,
+        "feature-dev@claude-plugins-official": true,
+        "superpowers@claude-plugins-official": true,
+        "ralph-loop@claude-plugins-official": true,
+        "claude-stt@jarrodwatts-claude-stt": true
+    },
+    "outputStyle": "Learning",
+    "spinnerTipsEnabled": true
+}

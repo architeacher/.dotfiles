@@ -16,7 +16,7 @@ _log_level="${LOG_LEVEL_INFO}"
 # string formatters, True if go_file descriptor FD is open and refers to a terminal.
 tty_escape() { :; }
 
-[ -t 1 ] &&  tty_escape() { printf "\x1b[%sm" "${1}"; }
+[ -t 1 ] && tty_escape() { printf "\x1b[%sm" "${1}"; }
 
 tty_4bit_mk() { tty_escape "${1}"; }
 tty_8bit_mk() { tty_escape "38;5;${1}"; }
@@ -54,7 +54,7 @@ log_set_level() { _log_level="${1}"; }
 log_priority() {
     local log_level="${1}"
 
-    if test -z "${log_level+x}"; then
+    if test -z "${log_level}"; then
         echo "${log_level}"
         return
     fi
@@ -62,7 +62,7 @@ log_priority() {
     [ "${log_level}" -le "${_log_level}" ]
 }
 
-display_message() { printf "%b\n" "${*}" 1>&2; }
+display_message() { echo -e "${@}" 1>&2; }
 
 to_pascal_case() {
     local input="${1}"
@@ -75,33 +75,33 @@ log_color() {
           tty_color=""
 
     case "${log_level}" in
-    "${LOG_LEVEL_DEBUG}")
-        tty_color="${tty_cyan}"
-        ;;
-    "${LOG_LEVEL_INFO}")
-        tty_color="${tty_olive}"
-        ;;
-    "${LOG_LEVEL_NOTICE}")
-        tty_color="${tty_green}"
-        ;;
-    "${LOG_LEVEL_WARNING}")
-        tty_color="${tty_corn}"
-        ;;
-    "${LOG_LEVEL_ERROR}")
-        tty_color="${tty_magenta}"
-        ;;
-    "${LOG_LEVEL_CRITICAL}")
-        tty_color="${tty_imperial}"
-        ;;
-    "${LOG_LEVEL_ALERT}")
-        tty_color="${tty_pink}"
-        ;;
-    "${LOG_LEVEL_EMERGENCY}")
-        tty_color="${tty_red}"
-        ;;
-    *)
-        tty_color="${tty_bold}"
-        ;;
+        "${LOG_LEVEL_DEBUG}")
+            tty_color="${tty_cyan}"
+            ;;
+        "${LOG_LEVEL_INFO}")
+            tty_color="${tty_olive}"
+            ;;
+        "${LOG_LEVEL_NOTICE}")
+            tty_color="${tty_green}"
+            ;;
+        "${LOG_LEVEL_WARNING}")
+            tty_color="${tty_corn}"
+            ;;
+        "${LOG_LEVEL_ERROR}")
+            tty_color="${tty_magenta}"
+            ;;
+        "${LOG_LEVEL_CRITICAL}")
+            tty_color="${tty_imperial}"
+            ;;
+        "${LOG_LEVEL_ALERT}")
+            tty_color="${tty_pink}"
+            ;;
+        "${LOG_LEVEL_EMERGENCY}")
+            tty_color="${tty_red}"
+            ;;
+        *)
+            tty_color="${tty_bold}"
+            ;;
     esac
 
     printf "%s" "${tty_color}"
@@ -144,7 +144,9 @@ log_tag() {
     printf "%s" "${tag}"
 }
 
-log_prefix() { echo "==>"; }
+log_prefix() {
+    echo "==>"
+}
 
 log() {
     local log_level="${1}" \
@@ -164,7 +166,7 @@ log() {
     message="${*}"
 
     [ "${tty_color}" != "" ] && {
-        display_message "${tty_color}$(log_prefix)" "[$(to_pascal_case "${tag}")]:" "${message}" "${tty_reset}"
+        display_message "${tty_color}" "$(log_prefix)" "[$(to_pascal_case "${tag}")]:" "${message}" "${tty_reset}"
     } ||
     {
         printf "%s %s" "$(log_prefix)" "${message}"

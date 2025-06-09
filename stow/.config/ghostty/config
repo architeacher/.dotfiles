@@ -1,4 +1,4 @@
-theme = catppuccin-mocha
+theme = dark:Catppuccin Mocha,light:Rose Pine Moon
 font-size = 19
 background-blur-radius = 20
 mouse-hide-while-typing = true
@@ -7,3 +7,4 @@ window-decoration = true
 macos-option-as-alt = true
 # background-opacity = 0.7
 # background-blur-radius = 20
+keybind = shift+enter=text:\x1b\r
