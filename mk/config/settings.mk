@@ -46,8 +46,8 @@ PLUS := ${ITEM_CLR}[${NO_CLR}${WARN_CLR}+${NO_CLR}${ITEM_CLR}]${NO_CLR}
 MSG_PRFX := ==>
 MSG_SFX := ...
 
-## Path to .env file.
-DOT_ENV_FILE ?= $(CURDIR)/.env
+## Path to .envrc file.
+DOT_ENV_FILE ?= $(CURDIR)/.envrc
 
 ## To echo recipes, you can do "make ECHO_RECIPES=true".
 ECHO_RECIPES ?= false

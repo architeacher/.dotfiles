@@ -119,36 +119,37 @@ create_gpg_key() {
     local key_id
     key_id="$(get_gpg_keys "${email}" | head -n 1)"
 
-    [ "${FORCE_REINSTALL}" == "true" ] || [ -z "${key_id}" ] && {
-        delete_gpg_entries "${email}"
-
-        log_debug "Creating batch GPG key for: ${name} <${email}>"
-
-#       export GNUPGHOME="$(mktemp -d)" # for debugging - setting gpg home to different location.
-        # https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html
-        gpg --batch --expert --generate-key -q <<eoGpgKeyParmas
-            %echo "Generating ECC keys (auth, sign & encr) with no-expiry"
-            Key-Type: EDDSA
-            Key-Curve: ed25519
-            Key-Usage: auth,sign
-            Subkey-Type: ECDH
-            Subkey-Curve: cv25519
-            Subkey-Usage: encrypt
-            Name-Comment: Git User
-            Name-Email: ${email}
-            Name-Real: ${name}
-            Expire-Date: 0
-            Passphrase: ${pass_phrase}
-            # Do a commit here, so that we can later print "done" :-)
-            %commit
-            %echo done
-eoGpgKeyParmas
-
-        key_id="$(get_gpg_keys "${email}" | head -n 1)"
-    } || {
+    [ "${FORCE_REINSTALL}" != "true" ] && [ -n "${key_id}" ] && {
         log_info "GPG key ${key_id} already exists for email: ${email}"
+        echo "${key_id}"
+
+        return
     }
 
+    delete_gpg_entries "${email}"
+    log_debug "Creating batch GPG key for: ${name} <${email}>"
+
+    # export GNUPGHOME="$(mktemp -d)" # for debugging - setting gpg home to different location.
+    # https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html
+    gpg --batch --expert --generate-key -q <<eoGpgKeyParmas
+        %echo "Generating ECC keys (auth, sign & encr) with no-expiry"
+        Key-Type: EDDSA
+        Key-Curve: ed25519
+        Key-Usage: auth,sign
+        Subkey-Type: ECDH
+        Subkey-Curve: cv25519
+        Subkey-Usage: encrypt
+        Name-Comment: Git User
+        Name-Email: ${email}
+        Name-Real: ${name}
+        Expire-Date: 0
+        Passphrase: ${pass_phrase}
+        # Do a commit here, so that we can later print "done" :-)
+        %commit
+        %echo done
+eoGpgKeyParmas
+
+    key_id="$(get_gpg_keys "${email}" | head -n 1)"
     echo "${key_id}"
 }
 
@@ -221,10 +222,7 @@ configure_ssh_keys() {
         log_notice "SSH key ${key_file} does not exist or FORCE_REINSTALL is not true. Skipping."
     done
 
-    if [ -z "${signing_key_id}" ]
-    then
-        abort "Empty signing key id."
-    fi
+    [ -z "${signing_key_id}" ] && abort "Empty signing key id."
 
     log_info "Exporting GPG key ${signing_key_id} as SSH key."
 
@@ -264,25 +262,28 @@ install_brew() {
     log_info "Installing Homebrew for you."
 
     # @see: scripts/common.sh
-    if [ "${FORCE_REINSTALL}" == "true" ] || ! is_command brew > /dev/null 2>&1
-    then
+    [ "${FORCE_REINSTALL}" == "true" ] || ! is_command brew > /dev/null 2>&1 && {
         bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         eval "$(/opt/homebrew/bin/brew shellenv)"
         sudo chmod 755 /opt/homebrew/share
 
         return 0
-    fi
+    }
 
     log_notice "Homebrew is already installed."
 }
 
 install_brew_deps() {
-    log_info "Installing brew dependencies."
+    local brew_dir="${1:-./stow/.config/homebrew}"
 
-    local opts=(
-        "--file" "./stow/.config/homebrew/Brewfile"
+    log_info "Installing brew bundle dependencies from files under ${brew_dir}."
+
+    local files=(
+        "${brew_dir}/Brewfile"
+        "${brew_dir}/Brewfile-${PROFILE}"
     )
 
+    local opts=()
     if [ "${FORCE_REINSTALL}" == "true" ]
     then
         opts+=("-f")
@@ -290,36 +291,15 @@ install_brew_deps() {
 
     brew up
     brew upgrade
-    brew bundle "${opts[@]}" || return 0
-}
 
-install_nix() {
-    log_info "Installing nix."
-
-    if [ "${FORCE_REINSTALL}" == "true" ] || [ ! -x /nix/var/nix/profiles/default/bin/nix ]
-    then
-        curl -L https://nixos.org/nix/install | sh
-
-        return 0
-   fi
-
-   log_debug "Nix OS is already installed!"
-}
-
-install_nix_darwin() {
-    install_nix
-
-    log_info "Installing nix_darwin."
-
-    if [ -x /nix/var/nix/profiles/default/bin/nix ]
-    then
-        /nix/var/nix/profiles/default/bin/nix run nix-darwin -- switch --flake "./stow/.config/nix-darwin" --impure
-
-        return 0
-    fi
-
-    abort "Nix OS is not installed!"
-#    darwin-rebuild switch --flake "./stow/.config/nix-darwin"
+    for file in "${files[@]}"; do
+        log_debug "Installing dependencies from ${file}"
+        if [ "${#opts[@]}" -eq 0 ]; then
+            brew bundle --file "${file}" || continue
+        else
+            brew bundle --file "${file}" "${opts[@]}" || continue
+        fi
+    done
 }
 
 install_theme() {
@@ -425,19 +405,19 @@ install_apps_themes() {
 set_wallpapers() {
     local wallpapers_dir="${1}"
 
-    if [ ! -d "${wallpapers_dir}" ]; then
+    [ ! -d "${wallpapers_dir}" ] && {
         log_warning "Directory ${wallpapers_dir} does not exist."
 
         return 0
-    fi
+    }
 
     local wallpaper
     wallpaper="$(fd -e bmp -e gif -e jpg -e jpeg -e png . "${wallpapers_dir}" | shuf -n 1)"
-    if [ -f "${wallpaper}" ]; then
+    [ -f "${wallpaper}" ] && {
 #         osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"${wallpaper}\""
          osascript -e "tell application \"System Events\" to set picture of every desktop to POSIX file \"${wallpaper}\""
          log_info "Wallpaper is set to ${wallpaper}."
-    fi
+    }
 
     open "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension"
 #    osascript <<EOF
@@ -488,7 +468,8 @@ HELP
 }
 
 parse_args() {
-    ENV_FILE="${ENV_FILE:-.env}"
+    ENV_FILE="${ENV_FILE:-.envrc}"
+    PROFILE="${PROFILE:-private}"
 
     local arg
     while getopts "e:l:p:h?x" arg; do
@@ -511,13 +492,13 @@ script_cleanup() {
     eval "$(/opt/homebrew/bin/brew shellenv)"
     brew cleanup
 
-    [ ${#cleanup_list[@]} -gt 0 ] && {
-        local item
-        for item in "${cleanup_list[@]}"; do
-            log_notice "Deleting directory ${item}"
-            rm -rf "${item}"
-        done
-    } || return 0
+    [ "${#cleanup_list[@]}" -eq 0 ] && return 0
+
+    local item
+    for item in "${cleanup_list[@]}"; do
+        log_notice "Deleting directory ${item}"
+        rm -rf "${item}"
+    done
 }
 
 at_exit() {
@@ -575,13 +556,12 @@ prepare() {
 
 install() {
     install_brew
-    install_brew_deps
+    install_brew_deps "./stow/.config/homebrew"
 
     # Stowing is necessary here, for bat theme config file.
     stow_config "./stow"
 
     install_apps_themes
-    install_nix_darwin
 
     update_submodules
 }

@@ -18,8 +18,8 @@ endef
 .PHONY: default
 default: help ## to run default target.
 
-.PHONY: .env
-.env: ## prepares a copy of the .env file.
+.PHONY: .envrc
+.envrc: ## prepares a copy of the .envrc file.
 	[ ! -f "$@" ] && cp "$@.dist" "$@" || true
 
 .PHONY: install

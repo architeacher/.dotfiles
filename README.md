@@ -31,12 +31,12 @@ Please follow these instructions to set up your Mac.
    This will provide help about the available targets.
 
 3. Environment variables
-   To create the `.env` file with variables that will be used in the installation, please run
+   To create the `.envrc` file with variables that will be used in the installation, please run
    ```bash
-   make .env
+   make .envrc
    ```
 
-    This command will generate a `.env` file, that you can edit for your git username and email, it should look like this.
+    This command will generate a `.envrc` file, that you can edit for your git username and email, it should look like this.
     ```dotenv
     # Installer
     FORCE_REINSTALL=false

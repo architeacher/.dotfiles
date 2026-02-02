@@ -289,7 +289,7 @@
                 head -10
 
     # Rebases interactively.
-    ri = "!f(){ git fetch origin && git rebase --interactive origin/${1-master}; }; f"
+    ri = "!f(){ git fetch origin && git rebase --interactive origin/${1-main}; }; f"
 
     # Make "git grep" look a bit like "ack"/"ag". Note that you need to
     # specify --no-index to search all files, and that submodules are not
@@ -323,8 +323,8 @@
     # Shorthand for shortlog
     shl = shortlog
 
-    # Displays repo disk consumption
-    size = git count-objects -v --human-readable
+    # Displays repo disk consumption.
+    size = count-objects -v --human-readable
 
     # Lists stashes.
     sl = stash list

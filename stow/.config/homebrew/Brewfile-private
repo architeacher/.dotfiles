@@ -1,0 +1,7 @@
+# Apps
+cask "anydesk"                              # 🗃️ Remote access tool.
+cask "dropbox"
+cask "telegram"
+
+# Terminals
+cask "warp"                                 # 🎁 An AI friendly terminal emulator.

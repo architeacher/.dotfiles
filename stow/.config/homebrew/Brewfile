@@ -17,10 +17,14 @@ brew "graphviz"
 brew "grpcui"
 brew "grpcurl"
 brew "neovim"
+brew "npm"
 brew "protoc-gen-go"
 brew "protoc-gen-go-grpc"
+brew "rustup"
 brew "tokei"                                # 📉 Displays statistics about your code.
+brew "tree-sitter-cli"
 brew "zig"
+brew "zls"
 
 # Docker 🐳
 brew "ctop"
@@ -29,14 +33,17 @@ brew "lazydocker"
 
 # K8s
 brew "argocd"
+brew "cilium-cli"
 brew "helm"
+brew "helm-docs"
 brew "k9s"
 brew "kind"
 brew "kubectx"                              # 🕸️ Switches between kubectl contexts easily and creates aliases.
 
 # General tools
+brew "ipcalc"                               # 🛜 A good utility for network operations.
 brew "koekeishiya/formulae/skhd"            # 🥵 A simple hotkey daemon.
-brew "koekeishiya/formulae/yabai"           # 🪟A tiling window manager for macOS based on binary space partitioning.
+brew "koekeishiya/formulae/yabai"           # 🪟 A tiling window manager for macOS based on binary space partitioning.
 brew "mosh"                                 # 🕹️ Remote terminal application that allows roaming.
 
 # Security
@@ -45,6 +52,8 @@ brew "nikto"                                # 🌐 Web server scanner.
 
 # Terminal Tools
 brew "age"                                  # 👴 A modern and secure file encryption tool.
+brew "agg"                                  # 🎇 A good tool to convert recorded video into a Gif.
+brew "asciinema"                            # 🎦 A good tool to record terminal interactions.
 brew "atac"                                 # ✉️ Arguably a Terminal API Client (like postman).
 brew "atuin"                                # 📜 Replaces your existing shell history with a SQLite database.
 brew "bash"                                 # 🐣 Bourne again shell.
@@ -54,6 +63,7 @@ brew "bottom"                               # 🖥️ A monitor of resources. Ru
 brew "brew-cask-completion"
 brew "broot"                                # 🌴 A new way to see and navigate directory trees.
 brew "btop"                                 # 📊 Resources monitor. C++ version and continuation of bashtop and bpytop.
+brew "carapace"                             # A multi-shell completion library and binary.
 brew "coreutils"                            # ☢️ A list of commands from the GNU Core Utilities https://en.wikipedia.org/wiki/List_of_GNU_Core_Utilities_commands#File_Utilities.
 brew "direnv"                               # 🗂️ Loads and unloads environment variables depending on the current directory.
 brew "diffr"                                # ➖ Reviewing changes involves reading diffs.
@@ -62,10 +72,11 @@ brew "duf"                                  # 💾 Disk Usage/Free Utility - a b
 brew "dust"                                 # 💿 A more intuitive version of du in rust.
 brew "eza"                                  # 📋 A modern alternative to ls.
 brew "fd"                                   # 🔎 A simple, fast and user-friendly alternative to 'find'.
-brew "sketchybar"                           # ✨ Creates a highly flexible, customizable, and fast status bar replacement.
+brew "sketchybar"                           # 📶️ Creates a highly flexible, customizable, and fast status bar replacement.
 brew "fzf"                                  # 🌸 A command-line fuzzy finder
 brew "glow"                                 # ✨ Render markdown on the CLI.
 brew "hyperfine"                            # 🏇 A command-line benchmarking tool, written in Rust.
+brew "jj"                                   # A powerful version control system.
 brew "jq"
 brew "keychain"                             # 🔐 A user-friendly front-end to ssh-agent.
 brew "lazygit"                              # 💤 A simple terminal UI for git commands.
@@ -74,11 +85,13 @@ brew "midnight-commander"                   # 🌃 A visual file manager.
 brew "mkcert"                               # 🎓 A simple zero-config tool to make locally trusted development certificates with any names you'd like.
 brew "nushell"                              # 🐚 A new type of shell.
 brew "nmap"                                 # 🕵️‍♂️ A port scanning utility for large networks.
-brew "pinentry-mac"                         # ⌨ Pinentry for GPG on Mac.
+brew "pinentry-mac"                         # ⌨  Pinentry for GPG on Mac.
 brew "portal"                               # 💻 Sends files from any computer to another.
+brew "procs"                                # Lists all processes.
 brew "ripgrep"                              # 🧐 Recursive Regex search tool.
 brew "safe-rm"                              # ❌ Prevent the accidental deletion of important files.
 brew "sd"                                   # Intuitive find & replace CLI (sed alternative).
+brew "specify"                              # 💫 A toolkit to help you get started with Spec-Driven Development.
 brew "sponge"                               # 🧽 A tool similar to tee, but soaks up all its input before opening the output file.
 brew "starship"                             # 🚀 Starship cross-shell prompt.
 brew "stow"                                 # 🔗 A symlink farm manager.
@@ -91,8 +104,10 @@ brew "tmux"                                 # 🫖 mux.
 brew "tpm"                                  # 🧋 A plugin manager for tmux.
 brew "trash-cli"                            # 🗑️ A command line interface to the trashcan.
 brew "tree"                                 # 🌳
+brew "trivy"                                # 🕵🏻‍♂️ A security scanner for vulnerabilities, misconfigurations, secrets.
+brew "unp"                                  # 📦 Unpack any archive.
 brew "vivid"                                # 🎨 A themeable LS_COLORS generator with a rich filetype database.
-brew "watch"                                # ⌚︎ Executes a program periodically, showing output fullscreen.
+brew "watch"                                # ⌚︎  Executes a program periodically, showing output fullscreen.
 brew "wget"
 brew "xh"                                   # 🎮 A friendly and fast tool for sending HTTP requests, written in Rust.
 brew "yazi"                                 # 💥 A blazing fast terminal file manager written in Rust, based on async I/O.
@@ -116,29 +131,33 @@ brew "zsh-history-substring-search"
 
 # Apps
 cask "caffeine"                             # ☕️ Prevents the system from going to sleep.
-cask "chatgpt"
-cask "dropbox"
-cask "deepl"                                # 🤖Translator.
+cask "chatgpt"                              # 🤖 💬GPT.
+cask "claude"                               # 🤖 Claude.
+cask "claude-code"                          # 🤖 Claude code.
+cask "codex"                                # 🤖 Open AI codex.
+cask "coderabbit"                           # 🐰
+cask "discord"                              # 😈
 cask "jetbrains-toolbox"
+cask "lm-stuido"                            # AI Studio
 cask "mitmproxy"                            # Intercepts, modifies, replays, saves HTTP/S traffic.
 cask "nikitabobko/tap/aerospace"            # i3-like tiling window manager for macOS.
 cask "nordvpn"
 cask "obsidian"
 cask "orbstack"                             # ⚡️ Fast, light, and simple way to run containers and Linux machines.
+cask "opencode"                             # 🤖 The AI coding agent built for the terminal..
 cask "podman-desktop"
 cask "postman"
-# cask "raycast"
+cask "raycast"
 cask "rectangle"
+cask "rustdesk"                             # 🖥️ Sharing screen.
 cask "signal"
 cask "slack"
-cask "telegram"
 cask "visual-studio-code"
 cask "zed"
 
 # Terminals
-cask "ghostty"                              # 👻An ultra fast terminal emulator.
-cask "warp"                                 # 🎁 An AI friendly terminal emulator.
-cask "wezterm"                              # 🧙‍♂️A wizzard terminal emulator.
+cask "ghostty"                              # 👻 An ultra fast terminal emulator.
+cask "wezterm"                              # 🧙‍♂️ A wizzard terminal emulator.
 
 # Fonts - Nerd fonts for the terminal - https://www.nerdfonts.com/
 cask "font-comic-shanns-mono-nerd-font"     # ComicShannsMono Nerd Font
@@ -170,5 +189,8 @@ vscode "hashicorp.terraform"
 vscode "ms-azuretools.vscode-docker"
 vscode "ms-kubernetes-tools.vscode-kubernetes-tools"
 vscode "ms-vscode.makefile-tools"
+vscode "ms-vscode-remote.remote-containers"
 vscode "mvllow.rose-pine"
 vscode "MattFoulks.har-analyzer"
+vscode "vscodevim.vim"
+vscode "ziglang.vscode-zig"
