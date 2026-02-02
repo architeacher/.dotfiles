@@ -24,6 +24,9 @@ alt - o : run-external "open" "-a" `/Applications/Obsidian.app/Contents/MacOS/Ob
 # QuickTime
 alt - q : run-external "open" "-a" `/System/Applications/QuickTime\ Player.app/Contents/MacOS/QuickTime\ Player`
 
+# Rust Rover
+lalt - r : run-external "open" "-a" `~/Applications/Rover.app/Contents/MacOS/rustrover`
+
 # Slack
 lalt - s : run-external "open" "-a" `/Applications/Slack.app/Contents/MacOS/Slack`
 
