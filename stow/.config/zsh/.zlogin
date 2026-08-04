@@ -21,7 +21,7 @@
     # Print a random, hopefully interesting, adage.
     if (( $+commands[fortune] )) && command -v cowsay >/dev/null 2>&1 && hash lolcat >/dev/null 2>&1; then
         fortune -s computers | cowsay -f "$(cowsay -l | sed '1d' | tr ' ' '\n' | shuf -n 1)" -nW80 | lolcat -a -d 1
-    else which neofetch >/dev/null 2>&1
-        neofetch
+    else which fastfetch >/dev/null 2>&1
+        fastfetch
     fi
 } >&2

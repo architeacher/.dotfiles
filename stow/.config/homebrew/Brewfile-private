@@ -1,7 +1,11 @@
+tap "koekeishiya/formulae", trusted: {
+  formula:  "yabai",
+}
+
 # General tools
 brew "ipcalc"                               # 🛜 A good utility for network operations.
-brew "koekeishiya/formulae/yabai"           # 🪟 A tiling window manager for macOS based on binary space partitioning.
 brew "mosh"                                 # 🕹️ Remote terminal application that allows roaming.
+brew "yabai"                                # 🪟 A tiling window manager for macOS based on binary space partitioning.
 
 # Security
 brew "amass"                                # 🛜 Performs network mapping of attack surfaces and external asset discovery.

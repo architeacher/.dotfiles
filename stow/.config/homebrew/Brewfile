@@ -11,8 +11,8 @@ tap "koekeishiya/formulae", trusted: {
 }
 
 # Dev Tools
-brew "bufbuild/buf/buf"
-brew "dotenvx/brew/dotenvx"
+brew "buf"
+brew "dotenvx"
 brew "git"
 brew "git-delta"
 brew "go"
@@ -22,7 +22,6 @@ brew "grpcui"
 brew "grpcurl"
 brew "neovim"
 brew "npm"
-brew "protoc-gen-go"
 brew "protoc-gen-go-grpc"
 brew "rustup"
 brew "tokei"                                # 📉 Displays statistics about your code.
@@ -43,7 +42,6 @@ brew "kind"
 brew "kubectx"                              # 🕸️ Switches between kubectl contexts easily and creates aliases.
 
 # General tools
-brew "ipcalc"                               # 🛜 A good utility for network operations.
 brew "koekeishiya/formulae/skhd"            # 🥵 A simple hotkey daemon.
 brew "mosh"                                 # 🕹️ Remote terminal application that allows roaming.
 
@@ -59,7 +57,6 @@ brew "broot"                                # 🌴 A new way to see and navigate
 brew "btop"                                 # 📊 Resources monitor. C++ version and continuation of bashtop and bpytop.
 brew "carapace"                             # A multi-shell completion library and binary.
 brew "coreutils"                            # ☢️ A list of commands from the GNU Core Utilities https://en.wikipedia.org/wiki/List_of_GNU_Core_Utilities_commands#File_Utilities.
-brew "carapace"                             # A multi-shell completion library and binary.
 brew "direnv"                               # 🗂️ Loads and unloads environment variables depending on the current directory.
 brew "diffr"                                # ➖ Reviewing changes involves reading diffs.
 brew "duf"                                  # 💾 Disk Usage/Free Utility - a better 'df' alternative.
@@ -110,7 +107,7 @@ brew "zoxide"                               # 🤓 A smarter cd command.
 brew "cowsay"
 brew "fortune"
 brew "lolcat"
-brew "mufetch"
+brew "fastfetch"
 
 # Apps
 cask "caffeine"                             # ☕️ Prevents the system from going to sleep.
@@ -121,7 +118,6 @@ cask "codex"                                # 🤖 Open AI codex.
 cask "coderabbit"                           # 🐰
 cask "jetbrains-toolbox"
 cask "orbstack"                             # ⚡️ Fast, light, and simple way to run containers and Linux machines.
-cask "opencode"                             # 🤖 The AI coding agent built for the terminal.
 cask "postman"
 cask "raycast"
 cask "rectangle"
@@ -149,4 +145,4 @@ cask "brave-browser"
 cask "firefox"
 
 # Mac Apps
-mas "RunCat", id: 1429033973
+mas "RunCat Neo", id: 6757801838

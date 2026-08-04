@@ -9,10 +9,10 @@ GIT_USER="John Doe"
 GITHUB_USERNAME="johndoe"
 
 # A pass phrase for singing keys - make sure to escape $, in case of any.
-PASS_PHRASE="bottom.\$ecret"
+PASS_PHRASE="b0tt0m.\$ecreT"
 
 # Installation profiles
-# The values can be one the following:
+# The values can be one of the following:
 # - private
 # - work
 PROFILE="private"
