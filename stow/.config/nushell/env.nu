@@ -1,9 +1,10 @@
+#
 # Nushell Environment Config File
 #
 # version = "0.95.0"
 
 def create_left_prompt [] {
-    let dir = match (do --ignore-shell-errors { $env.PWD | path relative-to $nu.home-path }) {
+    let dir = match (do -i { $env.PWD | path relative-to $nu.home-path }) {
         null => $env.PWD
         '' => '~'
         $relative_pwd => ([~ $relative_pwd] | path join)
@@ -33,6 +34,8 @@ def create_right_prompt [] {
 
     ([$last_exit_code, (char space), $time_segment] | str join)
 }
+
+$env.STARSHIP_SHELL = "nu"
 
 # Use nushell functions to define your right and left prompt
 $env.PROMPT_COMMAND = {|| create_left_prompt }
@@ -91,23 +94,24 @@ $env.NU_PLUGIN_DIRS = [
 # An alternate way to add entries to $env.PATH is to use the custom command `path add`
 # which is built into the nushell stdlib:
 use std "path add"
-# $env.PATH = ($env.PATH | split row (char esep))
-# path add /some/path
-# path add ($env.CARGO_HOME | path join "bin")
-# path add ($env.HOME | path join ".local" "bin")
-# $env.PATH = ($env.PATH | uniq)
-path add /opt/homebrew/bin
-path add /run/current-system/sw/bin
+path add "/opt/homebrew/bin"
+path add "/opt/homebrew/sbin"
+path add ($env.HOME | path join ".turso")
+path add "/Users/architeacher/.local/bin"
 
 # To load from a custom file you can use:
 # source ($nu.default-config-dir | path join 'custom.nu')
 
+mkdir ~/.cache/carapace
+carapace _carapace nushell | save -f ~/.cache/carapace/init.nu
+
 mkdir ~/.cache/starship
 starship init nu | save -f ~/.cache/starship/init.nu
-zoxide init nushell | save -f ~/.zoxide.nu
 
-$env.STARSHIP_CONFIG = /Users/architeacher/.config/starship/starship.toml
-$env.NIX_CONF_DIR = /Users/architeacher/.config/nix
+mkdir ~/.cache/zoxide
+zoxide init nushell | save -f ~/.cache/zoxide/init.nu
+
+$env.STARSHIP_CONFIG = "/Users/architeacher/.config/starship/starship.toml"
 $env.CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense' # optional
-mkdir ~/.cache/carapace
-carapace _carapace nushell | save --force ~/.cache/carapace/init.nu
+
+$env.EDITOR = "nvim"

@@ -14,16 +14,12 @@ Thumbs.db
 *.log
 .*log
 
-/.idea
-/.vscode
-
 .env
 .env-*
 .envrc
 .envrc-*
 .zcompdump*
 *.lock.json
-*.log
 private-*
 work-*
 

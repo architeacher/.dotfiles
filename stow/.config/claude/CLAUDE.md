@@ -1,5 +1,24 @@
 # Guidelines
 
+## Engineering Preferences
+- [MUST] Follow SOLID, DRY, KISS, YAGNI, TDA principles
+- [MUST] Use TDD for application code
+- [MUST] Prioritize Security, Readability, then Performance
+
+## Code Style (All Languages)
+- [MUST] Prefer early returns over nested blocks
+- [MUST] Use table-driven tests, name variable `cases`
+- [SHOULD] Avoid: unnecessary comments, long functions/lines, magic numbers, string literals, global variables
+- [SHOULD] Use meaningful variable names (e.g., `index` not `i`)
+
+## Workflow
+- [MUST] Think VERY HARD before acting — no scope creep
+- [MUST] Explain understanding and ask confirmation before major changes
+- [MUST] Provide 3+ alternatives for non-trivial architectural decisions
+- [MUST] Show commit messages and ask for confirmation before committing
+- [SHOULD] Use sub-agents for deep exploration when trade-offs are complex
+- [SHOULD] Write plan under `.claude/plans/feature-{name}.md`
+
 ## Feedback Style
 - Interview me using the AskUserQuestion tool.
 - Be a caring critic: honest feedback serving my success, not validation
@@ -45,6 +64,8 @@
 - [MUST] Clean Hexagonal: adapters (inbound, outbound, repos, services), domain/model, ports, presenters
 - [MUST] CQRS: separate commands and queries in usecases, use decorators for cross-cutting concerns
 - [MUST] Repository Pattern for data access
+
+---
 
 ## Commit Format
 - [MUST] Format: `type(scope): :gitmoji: description.`

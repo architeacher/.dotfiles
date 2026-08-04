@@ -49,13 +49,13 @@ Please follow these instructions to set up your Mac.
     GITHUB_USERNAME="johndoe"
 
     # Sginging Keys - make sure to escape $, in case of any.
-    PASS_PHRASE="bottom.secret"
+    PASS_PHRASE="bottom.\$ecret"
 
     # Installation profiles
     # The values can be one the following:
     # - private
     # - work
-    PROFILE=""
+    PROFILE="private"
     ```
 
 4. Installation

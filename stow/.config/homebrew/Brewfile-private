@@ -1,7 +1,57 @@
+# General tools
+brew "ipcalc"                               # 🛜 A good utility for network operations.
+brew "koekeishiya/formulae/yabai"           # 🪟 A tiling window manager for macOS based on binary space partitioning.
+brew "mosh"                                 # 🕹️ Remote terminal application that allows roaming.
+
+# Security
+brew "amass"                                # 🛜 Performs network mapping of attack surfaces and external asset discovery.
+brew "nikto"                                # 🌐 Web server scanner.
+
+# Terminal Tools
+brew "asciinema"                            # 🎦 A good tool to record terminal interactions.
+brew "atac"                                 # ✉️ Arguably a Terminal API Client (like postman).
+
+# Terminal Fun
+brew "asciiquarium"
+brew "cmatrix"
+
+# Zsh
+brew "zsh-autocomplete"
+brew "zsh-autosuggestions"
+brew "zsh-completions"
+brew "zsh-fast-syntax-highlighting"
+brew "zsh-history-substring-search"
+
 # Apps
 cask "anydesk"                              # 🗃️ Remote access tool.
+cask "discord"                              # 😈
 cask "dropbox"
+cask "lm-stuido"                            # AI Studio
+cask "mitmproxy"                            # Intercepts, modifies, replays, saves HTTP/S traffic.
+cask "nikitabobko/tap/aerospace"            # i3-like tiling window manager for macOS.
+cask "nordvpn"
+cask "obsidian"
+cask "rustdesk"                             # 🖥️ Sharing screen.
+cask "signal"
 cask "telegram"
+cask "visual-studio-code"
 
 # Terminals
 cask "warp"                                 # 🎁 An AI friendly terminal emulator.
+cask "wezterm"                              # 🧙‍♂️ A wizzard terminal emulator.
+
+# Visual Studio Code Plugins
+vscode "1YiB.rust-bundle"
+vscode "Catppuccin.catppuccin-vsc"
+vscode "Catppuccin.catppuccin-vsc-icons"
+vscode "dooez.alt-catppuccin-vsc"
+vscode "golang.Go"
+vscode "hashicorp.terraform"
+vscode "ms-azuretools.vscode-docker"
+vscode "ms-kubernetes-tools.vscode-kubernetes-tools"
+vscode "ms-vscode.makefile-tools"
+vscode "ms-vscode-remote.remote-containers"
+vscode "mvllow.rose-pine"
+vscode "MattFoulks.har-analyzer"
+vscode "vscodevim.vim"
+vscode "ziglang.vscode-zig"
