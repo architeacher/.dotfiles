@@ -97,7 +97,7 @@ use std "path add"
 path add "/opt/homebrew/bin"
 path add "/opt/homebrew/sbin"
 path add ($env.HOME | path join ".turso")
-path add "/Users/architeacher/.local/bin"
+path add ($env.HOME | path join ".local/bin")
 
 # To load from a custom file you can use:
 # source ($nu.default-config-dir | path join 'custom.nu')
@@ -111,7 +111,7 @@ starship init nu | save -f ~/.cache/starship/init.nu
 mkdir ~/.cache/zoxide
 zoxide init nushell | save -f ~/.cache/zoxide/init.nu
 
-$env.STARSHIP_CONFIG = "/Users/architeacher/.config/starship/starship.toml"
+$env.STARSHIP_CONFIG = ($env.HOME | path join ".config/starship/starship.toml")
 $env.CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense' # optional
 
 $env.EDITOR = "nvim"

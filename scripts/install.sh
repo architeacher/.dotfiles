@@ -209,11 +209,13 @@ configure_ssh_keys() {
     key_file \
     public_key_string
 
+    touch ~/.ssh/allowed_singers
+
     for key in "${!keys[@]}"; do
         key_file="id_${keys[${key}]}"
         public_key_string="$(cat "${HOME}/.ssh/${key_file}.pub")"
 
-        [ "${FORCE_REINSTALL}" == "true" ] || ! rg -F "${public_key_string}" ~/.ssh/allowed_singers >/dev/null && {
+        [ "${FORCE_REINSTALL}" == "true" ] || ! rg -qF "${public_key_string}" ~/.ssh/allowed_singers && {
             echo "${USER} $(cat "${HOME}/.ssh/${key_file}.pub")" | tee -a ~/.ssh/allowed_singers
 
             continue
@@ -228,7 +230,7 @@ configure_ssh_keys() {
 
     public_key_string="$(get_gpg_public_key_string "${signing_key_id}")"
 
-    ! rg -F "${public_key_string}" ~/.ssh/allowed_singers >/dev/null && {
+    ! rg -qF "${public_key_string}" ~/.ssh/allowed_singers && {
         echo "${public_key_string}" | tee -a ~/.ssh/allowed_singers
     } || return 0
 }
@@ -240,7 +242,7 @@ configure_keychain() {
         printf '%b' '#!/usr/bin/env zsh\n\n' >| "${ZDOTDIR}/local/keychain.zsh"
     }
 
-    ! rg -F "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" >/dev/null && {
+    ! rg -qF "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" && {
         printf '%b' "keychain --eval --agents gpg ${signing_key_id} >/dev/null 2>&1\n" >> "${ZDOTDIR}/local/keychain.zsh"
     } || return 0
 
@@ -293,10 +295,11 @@ install_brew_deps() {
     brew upgrade
 
     for file in "${files[@]}"; do
-        log_debug "Installing dependencies from ${file}"
         if [ "${#opts[@]}" -eq 0 ]; then
+            log_debug "Installing dependencies from ${file}"
             brew bundle --file "${file}" || continue
         else
+            log_debug "Force installing dependencies from ${file}"
             brew bundle --file "${file}" "${opts[@]}" || continue
         fi
     done
@@ -340,7 +343,7 @@ install_bat_themes() {
 
     {
         bat cache --build
-        bat --list-themes
+        bat --list-themes -P
         bat "$(bat --config-file)"
     } 2>/dev/null
 }
@@ -430,7 +433,6 @@ set_wallpapers() {
 
 start_services() {
     skhd --start-service
-    yabai --start-service
 }
 
 stow_config() {
@@ -448,6 +450,7 @@ stow_config() {
     stow --adopt "${dir}"
 }
 
+# Todo: Remove this.
 update_submodules() {
     git submodule update --init --rebase
 }
@@ -562,8 +565,6 @@ install() {
     stow_config "./stow"
 
     install_apps_themes
-
-    update_submodules
 }
 
 create() {
