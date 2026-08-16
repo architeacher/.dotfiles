@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eou pipefail
+set -Eeou pipefail
 
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
@@ -17,14 +17,14 @@ configure_git(){
     log_debug "Configuring git with: ${name} <${email}>, signing_key = ${signing_key_id} \n Github user: ${github_username}"
 
     case "${PROFILE}" in
-      private|work)
-        log_debug "Configuring ${PROFILE} git profile for ${email}"
+        private|work)
+            log_debug "Configuring ${PROFILE} git profile for ${email}"
 
-        cp "${XDG_CONFIG_HOME}/git/${PROFILE}-config.dist" "${config_path}"
-        sed -i '' "s|.*email.*|	email      = ${email}|g" "${config_path}"
-        sed -i '' "s|.*name.*|	name       = ${name}|g" "${config_path}"
-        sed -i '' "s|.*signingkey.*|	signingkey = ${signing_key_id}|g" "${config_path}"
-        return
+            cp "${XDG_CONFIG_HOME}/git/${PROFILE}-config.dist" "${config_path}"
+            sed -i '' "s|.*email.*|	email      = ${email}|g" "${config_path}"
+            sed -i '' "s|.*name.*|	name       = ${name}|g" "${config_path}"
+            sed -i '' "s|.*signingkey.*|	signingkey = ${signing_key_id}|g" "${config_path}"
+            return
         ;;
     esac
 
@@ -439,9 +439,9 @@ stow_config() {
     local dir="${1}"
 
     case "${dir}" in
-      ./*)
-        # Removing the ./ from the beginning, as it would be rejected by the stow command.
-        dir="${dir:2}"
+        ./*)
+            # Removing the ./ from the beginning, as it would be rejected by the stow command.
+            dir="${dir:2}"
         ;;
     esac
 
@@ -506,25 +506,44 @@ script_cleanup() {
 
 at_exit() {
     local signal="${1}" \
-          ret="$?"
+          ret="${2}" \
+          line_no="${3:-}" \
+          cmd="${4:-}" \
+          stack_trace="${5:-}"
 
     script_cleanup
 
     case "${signal}" in
-      INT | TERM | QUIT)
-        log_critical "\n🦇 Bat luck out there!\n😥 Try hard next time."
-        exit_status=1
+        ERR)
+            log_error "Command failed (exit ${ret}) at line ${line_no}: ${cmd}\nStack trace:\n${stack_trace}"
+            exit_status="${ret}"
+            return
         ;;
-      EXIT)
-        [ "${ret}" == 0 ] && {
-            log_info "\n✨ Congratulations, you can now chillax!\n😎 May the odds be in your favour."
-        }
+        INT | TERM | QUIT)
+            log_critical "\n🦇 Bat luck out there!\n😥 Try hard next time."
+            exit_status=1
+        ;;
+        EXIT)
+            [ "${ret}" == 0 ] && {
+                log_info "\n✨ Congratulations, you can now chillax!\n😎 May the odds be in your favour."
+            }
         ;;
     esac
 
     ring_bell
 
     exit "${exit_status}"
+}
+
+build_stack_trace() {
+    local frame \
+          trace=""
+
+    for ((frame = 1; frame < ${#FUNCNAME[@]} - 1; frame++)); do
+        trace+="  at ${FUNCNAME[${frame}]} (${BASH_SOURCE[${frame}]}:${BASH_LINENO[${frame}-1]})\n"
+    done
+
+    printf '%b' "${trace}"
 }
 
 trap_with_arg() {
@@ -534,7 +553,7 @@ trap_with_arg() {
 
     for signal in "$@"; do
         # shellcheck disable=SC2064
-        trap "${callback} ${signal}" "${signal}"
+        trap "${callback} ${signal} \"\$?\" \"\${LINENO}\" \"\${BASH_COMMAND}\" \"\$(build_stack_trace)\"" "${signal}"
     done
 }
 
@@ -545,7 +564,7 @@ validate_args() {
 prepare() {
     # @see: scripts/common.sh
     validate_bash
-    trap_with_arg at_exit EXIT INT QUIT TERM
+    trap_with_arg at_exit ERR EXIT INT QUIT TERM
 
     parse_args "$@"
     validate_args
