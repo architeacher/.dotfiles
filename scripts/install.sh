@@ -493,7 +493,7 @@ parse_args() {
 
 script_cleanup() {
     eval "$(/opt/homebrew/bin/brew shellenv)"
-    brew cleanup
+    brew cleanup || log_warning "brew cleanup failed, continuing"
 
     [ "${#cleanup_list[@]}" -eq 0 ] && return 0
 
@@ -511,11 +511,9 @@ at_exit() {
           cmd="${4:-}" \
           stack_trace="${5:-}"
 
-    script_cleanup
-
     case "${signal}" in
         ERR)
-            log_error "Command failed (exit ${ret}) at line ${line_no}: ${cmd}\nStack trace:\n${stack_trace}"
+            log_error "Command failed (exit ${ret}) at line ${line_no}: ${cmd}\n Stack trace:\n${stack_trace}"
             exit_status="${ret}"
             return
         ;;
@@ -524,6 +522,7 @@ at_exit() {
             exit_status=1
         ;;
         EXIT)
+            script_cleanup
             [ "${ret}" == 0 ] && {
                 log_info "\n✨ Congratulations, you can now chillax!\n😎 May the odds be in your favour."
             }
