@@ -46,7 +46,7 @@ Please follow these instructions to set up your Mac.
     GIT_USER="John Doe"
 
     # Github
-    GITHUB_USERNAME="johndoe"
+    GITHUB_USERNAME="john.doe"
 
     # Sginging Keys - make sure to escape $, in case of any.
     PASS_PHRASE="bottom.\$ecreT"
