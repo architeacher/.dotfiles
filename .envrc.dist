@@ -6,7 +6,7 @@ GIT_EMAIL="john.doe@foo.bar"
 GIT_USER="John Doe"
 
 # Github
-GITHUB_USERNAME="johndoe"
+GITHUB_USERNAME="john.doe"
 
 # A pass phrase for singing keys - make sure to escape $, in case of any.
 PASS_PHRASE="b0tt0m.\$ecreT"

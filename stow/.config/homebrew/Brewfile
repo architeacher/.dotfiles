@@ -116,6 +116,7 @@ cask "claude"                               # 🤖 Claude.
 cask "claude-code"                          # 🤖 Claude code.
 cask "codex"                                # 🤖 Open AI codex.
 cask "coderabbit"                           # 🐰
+cask "handy"                                # ✋ A speech-to-text application.
 cask "jetbrains-toolbox"
 cask "orbstack"                             # ⚡️ Fast, light, and simple way to run containers and Linux machines.
 cask "postman"

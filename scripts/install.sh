@@ -52,7 +52,7 @@ get_gpg_keys() {
 
     log_debug "Fetching GPG public keys for ${email}"
 
-    gpg --list-keys --keyid-format LONG "${email}" 2>/dev/null | rg '^pub' | awk '{print $2}' | cut -d'/' -f2
+    gpg --list-keys --keyid-format LONG "${email}" 2>/dev/null | rg '^pub' | awk '{print $2}' | cut -d'/' -f2 || true
 }
 
 get_gpg_secret_keys_fingerprints() {
@@ -60,7 +60,7 @@ get_gpg_secret_keys_fingerprints() {
 
     log_debug "Fetching GPG secret keys for ${email}"
 
-    gpg --list-secret-keys --keyid-format LONG "${email}" 2>/dev/null | rg -A 1 '^sec' | rg '[0-9A-F]{40}' | xargs
+    gpg --list-secret-keys --keyid-format LONG "${email}" 2>/dev/null | rg -A 1 '^sec' | rg '[0-9A-F]{40}' | xargs -r || true
 }
 
 get_gpg_public_key_string() {
@@ -71,18 +71,16 @@ get_gpg_public_key_string() {
 
 delete_gpg_entries() {
     local email="${1}" \
-          signing_key_id
+          signing_key_id="${2}"
 
-    log_warning "Deleting GPG entries for: ${email}"
+    log_warning "Deleting GPG entries for: ${email} (key: ${signing_key_id})"
 
-    signing_key_id="$(get_gpg_keys "${email}")"
-
-    rg -v "$(get_gpg_public_key_string "${signing_key_id}")" ~/.ssh/allowed_singers | sponge ~/.ssh/allowed_singers
-    rg -v "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" | sponge "${ZDOTDIR}/local/keychain.zsh"
+    rg -v "$(get_gpg_public_key_string "${signing_key_id}")" ~/.ssh/allowed_singers | sponge ~/.ssh/allowed_singers || true
+    rg -v "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" | sponge "${ZDOTDIR}/local/keychain.zsh" || true
 
     # Secret keys should be deleted first.
-    get_gpg_secret_keys_fingerprints "${email}" | xargs gpg --batch --delete-secret-keys --yes
-    echo "${signing_key_id}" | xargs gpg --batch --delete-keys --yes
+    get_gpg_secret_keys_fingerprints "${email}" | xargs -r gpg --batch --delete-secret-keys --yes
+    echo "${signing_key_id}" | xargs -r gpg --batch --delete-keys --yes
 }
 
 create_gpg_agent_data_dir() {
@@ -100,6 +98,8 @@ update_pinentry_path() {
 
     pinentry_path="$(which pinentry-mac)"
 
+    [ ! -f "${gpg_agent_config_file}" ] && : >| "${gpg_agent_config_file}"
+
     [ "${pinentry_path}" != "" ] && ! rg "${pinentry_path}" "${gpg_agent_config_file}" >/dev/null && {
         echo "pinentry-program ${pinentry_path}" | tee -a "${gpg_agent_config_file}" >/dev/null
         killall gpg-agent
@@ -116,17 +116,17 @@ create_gpg_key() {
     create_gpg_agent_data_dir
     update_pinentry_path
 
-    local key_id
-    key_id="$(get_gpg_keys "${email}" | head -n 1)"
+    local signing_key_id
+    printf -v signing_key_id '%s' "$(get_gpg_keys "${email}" | head -n 1)"
 
-    [ "${FORCE_REINSTALL}" != "true" ] && [ -n "${key_id}" ] && {
-        log_info "GPG key ${key_id} already exists for email: ${email}"
-        echo "${key_id}"
+    [ "${FORCE_REINSTALL}" != "true" ] && [ -n "${signing_key_id}" ] && {
+        log_info "GPG key ${signing_key_id} already exists for email: ${email}"
+        echo "${signing_key_id}"
 
         return
     }
 
-    delete_gpg_entries "${email}"
+    [ -n "${signing_key_id}" ] && delete_gpg_entries "${email}" "${signing_key_id}"
     log_debug "Creating batch GPG key for: ${name} <${email}>"
 
     # export GNUPGHOME="$(mktemp -d)" # for debugging - setting gpg home to different location.
@@ -149,8 +149,7 @@ create_gpg_key() {
         %echo done
 eoGpgKeyParmas
 
-    key_id="$(get_gpg_keys "${email}" | head -n 1)"
-    echo "${key_id}"
+    get_gpg_keys "${email}" | head -n 1
 }
 
 create_ssh_key() {
@@ -260,12 +259,15 @@ declare_global_vars() {
     export GNUPGHOME
 }
 
-install_brew() {
+install_home_brew() {
     log_info "Installing Homebrew for you."
 
     # @see: scripts/common.sh
     [ "${FORCE_REINSTALL}" == "true" ] || ! is_command brew > /dev/null 2>&1 && {
-        bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        local installer
+        installer="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || abort "Failed to download Homebrew installer."
+        bash -c "${installer}"
+
         eval "$(/opt/homebrew/bin/brew shellenv)"
         sudo chmod 755 /opt/homebrew/share
 
@@ -275,7 +277,7 @@ install_brew() {
     log_notice "Homebrew is already installed."
 }
 
-install_brew_deps() {
+install_home_brew_deps() {
     local brew_dir="${1:-./stow/.config/homebrew}"
 
     log_info "Installing brew bundle dependencies from files under ${brew_dir}."
@@ -576,8 +578,8 @@ prepare() {
 }
 
 install() {
-    install_brew
-    install_brew_deps "./stow/.config/homebrew"
+    install_home_brew
+    install_home_brew_deps "./stow/.config/homebrew"
 
     # Stowing is necessary here, for bat theme config file.
     stow_config "./stow"
@@ -587,7 +589,7 @@ install() {
 
 create() {
     # shellcheck disable=SC2153
-    create_ssh_keys "${GIT_EMAIL}" "${PASS_PHRASE}"
+    create_ssh_keys "${GIT_EMAIL}" "${PASS_PHRASE}" >&2
     create_gpg_key "${GIT_EMAIL}" "${GIT_USER}" "${PASS_PHRASE}"
 }
 
