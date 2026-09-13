@@ -6,33 +6,12 @@
 
 # If you are too lazy for typing "git checkout", "git status" or "git branch" all the time, it might be useful for you.
 [alias]
-    # Add all unstaged (including untracked) files.
-    # See`git help add`
-    aa = add --all
-
-    # Shorthand for verbose add
-    ad = add -v
-
-    # See`git help add`
-    ai = add --interactive
-
     # Lists aliases.
     aliases = ! git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ / | sort
 
     # Amends the currently staged files to the latest commit.
     # See`git help commit`
-    amend = commit --amend --reuse-message=HEAD
-
-    # Interactively choose hunks of patch between the index and the work
-    # tree and add them to the index.
-    ap = add --patch
-
-    # Delete a branch only if it is merged in the current branch.
-    # See`git help branch`
-    bd = branch --delete
-
-    # Shorthand for branch --merged
-    bm = branch --merged
+    amend = commit --amend --no-edit --reuse-message=HEAD
 
     # Lists all branches.
     br = branch
@@ -40,17 +19,8 @@
     # Shows verbose output about branches.
     branches = branch -a
 
-    # Shorthand for branch (verbose)
-    brv = branch -v
-
-    # Commits all changes.
-    ca = !git add -A && git commit -av
-
     # Commits all with a message.
     cam = commit -am
-
-    # Creates and switches to a new branch (mnemonic: "git new branch branch_name...")
-    cb = checkout -B
 
     # Shows the current branch.
     cbr = rev-parse --abbrev-ref HEAD
@@ -87,13 +57,6 @@
     # Removes branches that have been merged with any branch (a.k.a delete merged)."
     cleanup = "!git branch --merged | grep  -v '\\*\\|main\\|master\\|develop' | xargs -n 1 -r git branch -d"
 
-    # Shorthand for config
-    # See`git help config` for config options.
-    cn = config
-
-    # Shorthand for global config
-    cng = config --global
-
     # Shorthand for checkout, switches to a branch, but doesn't create it.
     co = checkout
 
@@ -117,9 +80,6 @@
 
     # Credits an author on the latest commit.
     credit = "!f() { git commit --amend --author \"$1 <$2>\" -C HEAD; }; f"
-
-    # Shows the diff between the latest commit and the unstaged changes.
-    df = diff
 
     # Shows the diff between the latest commit and the staged changes.
     # http://stackoverflow.com/questions/8483041/git-color-words-excluding
@@ -185,12 +145,6 @@
     # Find tags containing commit.
     fdt = "!f() { git describe --always --contains $1; }; f"
 
-    # Switches to a branch, creating it if necessary.
-    go = "!f() { git checkout -b \"${1}\" 2> /dev/null || git checkout \"${1}\"; }; f"
-
-    # Ignores case and skip binary files.
-    grep = grep -Ii
-
     # Shows short SHA, description, and history graph of last 10 commits.
     l = log --abbrev-commit --graph -n 10 --pretty=oneline
 
@@ -207,7 +161,7 @@
         --graph \
         --no-merges \
         --topo-order \
-        --pretty=format:'Commit:    %C(bold brightmagenta)%h%Creset %C(dim yellow)<%H>%Creset %C(bold brightgreen)%G?%Creset -%C(auto)%d%Creset%n''           %C(magenta)%s%C(reset)%n''Date:      %C(italic dim white)authored:%C(reset)  %C(green)%ad%C(reset) %C(brightcyan)(%ar)%C(reset)%n''           %C(italic dim white)committed:%C(reset) %C(blue)%cd%C(reset) %C(brightblue)(%cr)%Creset%nAuthor:    %C(dim green)<%an - %aE>%Creset%nCommitter: %C(dim blue)<%an - %aE>%Creset'
+        --pretty=very-nice
 
     # Writes dangling objects to lost and found.
     lost = fsck --lost-found
@@ -216,9 +170,6 @@
     ls = ls-files
 
     lst = "! git ll --name-status"
-
-    # Fires up the merge tool.
-    mt = mergetool
 
     # Shows the not merged branches compared to the current branch.
     nm = branch --no-merged
@@ -247,14 +198,8 @@
                                 do git branch -D \"${branch}\"; \
                                 done"
 
-    # Push
-    ps = push
-
     # Forces push without overwriting the work of others.
     pushf = push --force-with-lease
-
-    # Aborts rebase.
-    rba = rebase --abort
 
     # Stages modified files and continues rebase.
     rbc = "!f(){ git add -A && git rebase --continue; }; f"
@@ -262,14 +207,8 @@
     # Rebases interactively with the given number of latest commits.
     rbi = "!r() { git rebase -i HEAD~$1; }; r"
 
-    # Skip rebase
-    rbs = rebase --skip
-
     # Via http://stackoverflow.com/questions/5188320/how-can-i-get-a-list-of-git-branches-ordered-by-most-recent-commit
     recent-branches = "!git for-each-ref --count=5 --sort=-committerdate refs/heads/ --format='%(refname:short)'"
-
-    # Shows verbose output about remotes.
-    remotes = remote -v
 
     # Restores savepoint.
     restore = "!f(){ git add -A && git commit -qm 'RESTORE SAVEPOINT'; git reset $1 --hard; }; f"
@@ -296,38 +235,15 @@
     # searched.
     rg = grep --extended-regexp --break --heading --line-number           # Interactive add. Used for patching.
 
-    # Update all remotes.
-    ru = remote update
-
-    # Applies stash (restore changes).
-    sa = stash apply
-
     # Saves savepoint.
     save = !git add -A && git commit -m 'SAVEPOINT'
 
-    # Drop stashes (destroy changes).
-    sd = stash drop
-
     # grep alias
-    search = grep
-
-    # Sets origin remote.
-    set-origin = remote set-url origin
-
-    # Sets upstream remote.
-    set-upstream = remote set-url upstream
-
-    # Retrieves the commit Sha.
-    sha = rev-parse HEAD
-
-    # Shorthand for shortlog
-    shl = shortlog
+    # Ignores case and skip binary files.
+    search = grep -Ii
 
     # Displays repo disk consumption.
     size = count-objects -v --human-readable
-
-    # Lists stashes.
-    sl = stash list
 
     # Pulls remota and auto-updates local submodules.
     spull = !git pull && git submodule sync --recursive && git submodule update --init --recursive
@@ -357,10 +273,10 @@
     # Shows object type.
     type = cat-file -t
 
-    # Undos commit and leaves files in uncommitted state (only for non-public commits).
+    # Undoes commit and leaves files in uncommitted state (only for non-public commits).
     uncommit = reset --soft HEAD^
 
-    # Undos last commit.
+    # Undoes last commit.
     undo = reset HEAD~1 --mixed
 
     # Unstages a file from index (tracking).

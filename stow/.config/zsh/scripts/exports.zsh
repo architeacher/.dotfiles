@@ -1,8 +1,8 @@
 #!/usr/bin/env zsh
 
-# Only vars used by external commands or non-interactive sub
-# shells need to be exported. Note that you can export vars
-# without assigning values to them.
+# Only vars used by external commands or non-interactive subshells
+# need to be exported. Note that you can export vars without
+# assigning values to them.
 
 # +-----+
 # | XDG |
@@ -22,11 +22,18 @@ export DOTFILES="${HOME}/.dotfiles"
 # | LANGUAGE |
 # +----------+
 
-[ -z "${LANG+x}" ] && {
+[[ -z "${LANG+x}" ]] && {
     export LC_ALL="en_US.UTF-8"     # Prefer US English and use UTF-8
     export LANG="en_US.UTF-8"
     export LANGUAGE="en_US.UTF-8"
 }
+
+# +-----+
+# | AWS |
+# +-----+
+
+export AWS_CONFIG_FILE="${XDG_CONFIG_HOME}/aws/config"
+export AWS_SHARED_CREDENTIALS_FILE="${XDG_CONFIG_HOME}/aws/credentials"
 
 # +-----------------------+
 # | Bat (The better cat!) |
@@ -118,7 +125,7 @@ export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND}"
 export FZF_CTRL_T_OPTS="--preview '${show_file_or_dir_preview}'"
 
 # CTRL-R − Paste the selected command from history onto the command-line.
-# CTRL-/ to toggle small preview window to see the full command
+# CTRL-/ to toggle a small preview window to see the full command
 # CTRL-Y to copy the command into clipboard using pbcopy
 export FZF_CTRL_R_OPTS="
   --preview 'echo {}' --preview-window down:3:hidden:wrap
@@ -286,6 +293,12 @@ export PAGER='less'
 # +-------+
 
 export NETRC="${DOTFILES}/private/.config/netrc"
+
+# +----+
+# | RG |
+# +----+
+
+export RIPGREP_CONFIG_PATH="${XDG_CONFIG_HOME}/rg/.ripgreprc"
 
 # +----------+
 # | Starship |

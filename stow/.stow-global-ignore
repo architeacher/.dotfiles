@@ -9,6 +9,8 @@
 .+~          # emacs backup files
 \#.*\#       # emacs autosave files
 
-^/README.*
-^/LICENSE.*
-^/COPYING
+(^|/)README.*
+(^|/)LICENSE.*
+(^|/)COPYING
+
+\.install-*-disabled

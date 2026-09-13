@@ -135,6 +135,7 @@
     algorithm = histogram
 
     color      = auto
+    # Highlight moved lines differently
     colorMoved = default
 
     # (git 2.9+) Set this option to `true` to enable an experimental heuristic that
@@ -144,6 +145,7 @@
 
     # Uses a prefix pair that is different from the standard "a/" and "b/" depending on what is being compared.
     mnemonicPrefix = true
+    noprefix       = true
     pager          = diffr | less -R
 
     # Tells git to detect renames. If set to any boolean value,
@@ -166,6 +168,9 @@
 [diff "bin"]
     # Use `hexdump` to diff binary files
     textconv = hexdump -v -C
+
+[difftool]
+    prompt = false
 
 [difftool "vscode"]
     cmd = code --wait --diff $LOCAL $REMOTE
@@ -262,6 +267,13 @@
     reflog = diffr | less -R
     show   = diffr | less -R
 
+[pretty]
+    # tut: http://gitimmersion.com/lab_10.html
+    # ref: http://linux.die.net/man/1/git-log
+    # Result: <short-sha> <commit-message> (<pointer-names>) -- <commit-author-name>; <relative-time>
+    nice      = "%C(yellow)%h%C(reset) %C(white)%s%C(cyan)%d%C(reset) -- %an; %ar"
+    very-nice = "Commit:    %C(bold brightmagenta)%h%Creset %C(dim yellow)<%H>%Creset %C(bold brightgreen)%G?%Creset -%C(auto)%d%Creset%n           %C(magenta)%s%C(reset)%nDate:      %C(italic dim white)authored:%C(reset)  %C(green)%ad%C(reset) %C(brightcyan)(%ar)%C(reset)%n           %C(italic dim white)committed:%C(reset) %C(blue)%cd%C(reset) %C(brightblue)(%cr)%Creset%nAuthor:    %C(dim green)<%an - %aE>%Creset%nCommitter: %C(dim blue)<%an - %aE>%Creset"
+
 [pull]
     ff      = "only"
     rebase  = true
@@ -285,7 +297,9 @@
 
     # Prevent pushing all locally modified branches if the branch to push is not specified while 'git push'.
     #
-    default = nothing
+    # default = nothing
+
+    default = current
 
     # Make `git push` push relevant annotated tags when pushing branches out.
     followTags = true
@@ -317,7 +331,7 @@
 
 [tag]
     gpgSign = true
-    sort    = version:refname
+    sort    = -version:refname
 
 [ui "color"]
     ui = always
@@ -353,7 +367,13 @@
 [user]
     email = 1043964+architeacher@users.noreply.github.com
     name = Ahmed Kamal
-    signingkey = 9E43A868E442541F
+    signingkey = 68D8E7C25FF5AD6E
+    # Use only a configured identity. Never guess one from the OS.
+    # Without this, git invents an author and the commit looks correct.
+    #
+    # The name and the email live in `~/.gitconfig`,
+    # or under the value of $GIT_CONFIG_GLOBAL which is not tracked.
+    useConfigOnly = true
 
 # Includes should be after the values you want to overwrite.
 [includeIf "gitdir/i:~/private/"]

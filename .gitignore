@@ -14,10 +14,7 @@ Thumbs.db
 *.log
 .*log
 
-.env
-.env-*
-.envrc
-.envrc-*
+.env*
 .zcompdump*
 *.lock.json
 private-*
@@ -52,3 +49,5 @@ themes/
 !Brewfile-work
 !conf.d/
 !config
+
+\.install-*-disabled

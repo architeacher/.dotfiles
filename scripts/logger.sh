@@ -11,12 +11,14 @@ readonly LOG_LEVEL_CRITICAL=2
 readonly LOG_LEVEL_ALERT=1
 readonly LOG_LEVEL_EMERGENCY=0
 
+readonly LOG_PREFIX="==>"
+
 _log_level="${LOG_LEVEL_INFO}"
 
 # string formatters, True if go_file descriptor FD is open and refers to a terminal.
 tty_escape() { :; }
 
-[ -t 1 ] && tty_escape() { printf "\x1b[%sm" "${1}"; }
+[[ -t 1 ]] && tty_escape() { printf "\x1b[%sm" "${1}"; }
 
 tty_4bit_mk() { tty_escape "${1}"; }
 tty_8bit_mk() { tty_escape "38;5;${1}"; }
@@ -49,167 +51,83 @@ tty_teal="$(tty_4bit_mk 36)"
 # shellcheck disable=SC2034
 tty_yellow="$(tty_8bit_mk 227)"
 
+readonly LOG_LEVEL_TAGS=(emergency alert critical error warning notice info debug)
+readonly LOG_LEVEL_COLORS=("${tty_red}" "${tty_pink}" "${tty_imperial}" "${tty_magenta}" "${tty_corn}" "${tty_olive}" "${tty_green}" "${tty_cyan}")
+
 log_set_level() { _log_level="${1}"; }
 
 log_priority() {
-    local log_level="${1}"
+    local priority="${1:?priority required}"
 
-    if test -z "${log_level}"; then
-        echo "${log_level}"
-        return
-    fi
-
-    [ "${log_level}" -le "${_log_level}" ]
+    [[ "${priority}" -le "${_log_level}" ]]
 }
 
-display_message() { echo -e "${@}" 1>&2; }
+display_message() { printf '%b\n' "${*}" >&2; }
 
 to_pascal_case() {
     local input="${1}"
 
-    printf "%s%s" "$(echo "${input:0:1}" | tr '[:lower:]' '[:upper:]')" "${input:1}";
+    printf "%s%s" "$(tr '[:lower:]' '[:upper:]' <<< "${input:0:1}")" "${input:1}"
 }
 
-log_color() {
-    local log_level="${1}" \
-          tty_color=""
+to_upper_case() {
+    local input="${1}"
 
-    case "${log_level}" in
-        "${LOG_LEVEL_DEBUG}")
-            tty_color="${tty_cyan}"
-            ;;
-        "${LOG_LEVEL_INFO}")
-            tty_color="${tty_olive}"
-            ;;
-        "${LOG_LEVEL_NOTICE}")
-            tty_color="${tty_green}"
-            ;;
-        "${LOG_LEVEL_WARNING}")
-            tty_color="${tty_corn}"
-            ;;
-        "${LOG_LEVEL_ERROR}")
-            tty_color="${tty_magenta}"
-            ;;
-        "${LOG_LEVEL_CRITICAL}")
-            tty_color="${tty_imperial}"
-            ;;
-        "${LOG_LEVEL_ALERT}")
-            tty_color="${tty_pink}"
-            ;;
-        "${LOG_LEVEL_EMERGENCY}")
-            tty_color="${tty_red}"
-            ;;
-        *)
-            tty_color="${tty_bold}"
-            ;;
-    esac
-
-    printf "%s" "${tty_color}"
-}
-
-log_tag() {
-    local log_level="${1}" \
-          tag=""
-
-    case "${log_level}" in
-        "${LOG_LEVEL_DEBUG}")
-            tag="Debug"
-            ;;
-        "${LOG_LEVEL_INFO}")
-            tag="Info"
-            ;;
-        "${LOG_LEVEL_NOTICE}")
-            tag="Notice"
-            ;;
-        "${LOG_LEVEL_WARNING}")
-            tag="Warning"
-            ;;
-        "${LOG_LEVEL_ERROR}")
-            tag="Error"
-            ;;
-        "${LOG_LEVEL_CRITICAL}")
-            tag="Critical"
-            ;;
-        "${LOG_LEVEL_ALERT}")
-            tag="Alert"
-            ;;
-        "${LOG_LEVEL_EMERGENCY}")
-            tag="Emergency"
-            ;;
-        *)
-            tag=""
-            ;;
-    esac
-
-    printf "%s" "${tag}"
-}
-
-log_prefix() {
-    echo "==>"
+    printf "%s" "$(tr '[:lower:]' '[:upper:]' <<< "${input}")"
 }
 
 log() {
     local log_level="${1}" \
           message="" \
-          tty_color="" \
+          tty_color="${tty_bold}" \
           tag=""
 
-    {
-        read -r tty_color
-    } <<< "$(log_color "${log_level}")"
+    log_priority "${log_level}" || return 0
 
-    {
-        read -r tag
-    } <<< "$(log_tag "${log_level}")"
+    [[ "${log_level}" =~ ^[0-9]+$ ]] && (( log_level < ${#LOG_LEVEL_COLORS[@]} )) \
+        && { tty_color="${LOG_LEVEL_COLORS[${log_level}]}"; tag="${LOG_LEVEL_TAGS[${log_level}]}"; }
 
     shift
     message="${*}"
 
-    [ "${tty_color}" != "" ] && {
-        display_message "${tty_color}" "$(log_prefix)" "[$(to_pascal_case "${tag}")]:" "${message}" "${tty_reset}"
-    } ||
-    {
-        printf "%s %s" "$(log_prefix)" "${message}"
+    [[ "${tag}" != "" ]] && {
+        display_message "${tty_color}" "${LOG_PREFIX}" "[$(to_upper_case "${tag}")]:" "${message}" "${tty_reset}"
+
+        return
     }
+
+    printf "%s %s\n" "${LOG_PREFIX}" "${message}"
 }
 
 log_debug() {
-    log_priority "${LOG_LEVEL_DEBUG}" || return 0
     log "${LOG_LEVEL_DEBUG}" "${@}"
 }
 
 log_info() {
-    log_priority "${LOG_LEVEL_INFO}" || return 0
     log "${LOG_LEVEL_INFO}" "${@}"
 }
 
 log_notice() {
-    log_priority "${LOG_LEVEL_NOTICE}" || return 0
     log "${LOG_LEVEL_NOTICE}" "${@}"
 }
 
 log_warning() {
-    log_priority "${LOG_LEVEL_WARNING}" || return 0
     log "${LOG_LEVEL_WARNING}" "${@}"
 }
 
 log_error() {
-    log_priority "${LOG_LEVEL_ERROR}" || return 0
     log "${LOG_LEVEL_ERROR}" "${@}"
 }
 
 log_critical() {
-    log_priority "${LOG_LEVEL_CRITICAL}" || return 0
     log "${LOG_LEVEL_CRITICAL}" "${@}"
 }
 
 log_alert() {
-    log_priority "${LOG_LEVEL_ALERT}" || return 0
     log "${LOG_LEVEL_ALERT}" "${@}"
 }
 
 log_emergency() {
-    log_priority "${LOG_LEVEL_EMERGENCY}" || return 0
     log "${LOG_LEVEL_EMERGENCY}" "${@}"
 }
 
@@ -251,7 +169,7 @@ parse_log_level() {
             log_level="${LOG_LEVEL_EMERGENCY}"
             ;;
         *)
-            abort "Invalid log level: ${log_level}"
+            abort "Invalid log level: ${log_input}"
             ;;
     esac
 
