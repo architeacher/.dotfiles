@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# No-op mock for tests. Real git is never invoked because run() short-circuits under DRY_RUN=true.
+echo "[mock git] $*"
+exit 0

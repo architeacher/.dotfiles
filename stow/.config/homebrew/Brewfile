@@ -1,17 +1,13 @@
-tap "bufbuild/buf", trusted: {
-  formula:  "buf",
-}
-
 tap "dotenvx/brew", trusted: {
   formula:  "dotenvx",
 }
 
 tap "koekeishiya/formulae", trusted: {
-  formula:  "skhd",
+  formulae:  ["skhd"],
 }
 
 # Dev Tools
-brew "buf"
+brew "buf", trusted: true
 brew "dotenvx"
 brew "git"
 brew "git-delta"
@@ -42,15 +38,18 @@ brew "kind"
 brew "kubectx"                              # 🕸️ Switches between kubectl contexts easily and creates aliases.
 
 # General tools
+brew "cf-terraforming"
 brew "koekeishiya/formulae/skhd"            # 🥵 A simple hotkey daemon.
 brew "mosh"                                 # 🕹️ Remote terminal application that allows roaming.
+brew "teleport"                             # 🚪 A modern SSH server for teams managing distributed infrastructure.
+brew "termshark"                            # 🦈 Provides a terminal-based user interface for analyzing packet captures.
 
 # Terminal Tools
-brew "age"                                  # 👴 A modern and secure file encryption tool.
 brew "atuin"                                # 📜 Replaces your existing shell history with a SQLite database.
 brew "bash"                                 # 🐣 Bourne again shell.
 brew "bash-completion"                      # Auto completions for `bash`.
 brew "bat"                                  # 🦇 A cat(1) clone with wings.
+brew "bats-core"                            # Bash Automated Testing System
 brew "bottom"                               # 🖥️ A monitor of resources. Rust version.
 brew "brew-cask-completion"
 brew "broot"                                # 🌴 A new way to see and navigate directory trees.
@@ -73,27 +72,22 @@ brew "lazygit"                              # 💤 A simple terminal UI for git 
 brew "mas"                                  # 📦 A Mac App Store command line interface.
 brew "mkcert"                               # 🎓 A simple zero-config tool to make locally trusted development certificates with any names you'd like.
 brew "nushell"                              # 🐚 A new type of shell.
-brew "nmap"                                 # 🕵️‍♂️ A port scanning utility for large networks.
 brew "pinentry-mac"                         # ⌨  Pinentry for GPG on Mac.
 brew "portal"                               # 💻 Sends files from any computer to another.
 brew "procs"                                # Lists all processes.
 brew "ripgrep"                              # 🧐 Recursive Regex search tool.
 brew "safe-rm"                              # ❌ Prevent the accidental deletion of important files.
 brew "sd"                                   # Intuitive find & replace CLI (sed alternative).
-brew "specify"                              # 💫 A toolkit to help you get started with Spec-Driven Development.
 brew "sponge"                               # 🧽 A tool similar to tee, but soaks up all its input before opening the output file.
 brew "starship"                             # 🚀 Starship cross-shell prompt.
 brew "stow"                                 # 🔗 A symlink farm manager.
-brew "teleport"                             # 🚪 A modern SSH server for teams managing distributed infrastructure.
 brew "telnet"
-brew "termshark"                            # 🦈 Provides a terminal-based user interface for analyzing packet captures.
-brew "cf-terraforming"
 brew "tldr"                                 # 📰 A simplified and community-driven man pages.
 brew "tmux"                                 # 🫖 mux.
 brew "tpm"                                  # 🧋 A plugin manager for tmux.
 brew "trash-cli"                            # 🗑️ A command line interface to the trashcan.
 brew "tree"                                 # 🌳
-brew "trivy"                                # 🕵🏻‍♂️ A security scanner for vulnerabilities, misconfigurations, secrets.
+brew "tuicr"                                # Code review TUI with vim keybindings.
 brew "unp"                                  # 📦 Unpack any archive.
 brew "vivid"                                # 🎨 A themeable LS_COLORS generator with a rich filetype database.
 brew "watch"                                # ⌚︎  Executes a program periodically, showing output fullscreen.
@@ -103,6 +97,12 @@ brew "yazi"                                 # 💥 A blazing fast terminal file 
 brew "yq"
 brew "zoxide"                               # 🤓 A smarter cd command.
 
+# Security
+brew "age"                                  # 👴 A modern and secure file encryption tool.
+brew "nmap"                                 # 🕵️‍♂️ A port scanning utility for large networks.
+brew "sops"                                 # Editor of encrypted files.
+brew "trivy"                                # 🕵🏻‍♂️ A security scanner for vulnerabilities, misconfigurations, secrets.
+
 # Terminal Fun
 brew "cowsay"
 brew "fortune"
@@ -111,10 +111,6 @@ brew "fastfetch"
 
 # Apps
 cask "caffeine"                             # ☕️ Prevents the system from going to sleep.
-cask "chatgpt"                              # 🤖 💬GPT.
-cask "claude"                               # 🤖 Claude.
-cask "claude-code"                          # 🤖 Claude code.
-cask "codex"                                # 🤖 Open AI codex.
 cask "coderabbit"                           # 🐰
 cask "handy"                                # ✋ A speech-to-text application.
 cask "jetbrains-toolbox"
@@ -124,6 +120,17 @@ cask "raycast"
 cask "rectangle"
 cask "slack"
 cask "zed"
+
+# AI Tools
+
+brew "llmfit"                               # Find what models run on your hardware.
+brew "opencode"                             # AI coding agent, built for the terminal
+brew "specify"                              # 💫 A toolkit to help you get started with Spec-Driven Development.
+
+cask "chatgpt"                              # 🤖 💬GPT.
+cask "claude"                               # 🤖 Claude.
+cask "claude-code"                          # 🤖 Claude code.
+cask "codex"                                # 🤖 Open AI codex.
 
 # Terminals
 cask "ghostty"                              # 👻 An ultra fast terminal emulator.
@@ -143,6 +150,7 @@ cask "font-source-code-pro"
 # Web Browsers
 cask "arc"
 cask "brave-browser"
+cask "thebrowsercompany-dia"
 cask "firefox"
 
 # Mac Apps

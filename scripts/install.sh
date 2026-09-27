@@ -1,38 +1,11 @@
 #!/usr/bin/env bash
 
-set -Eeou pipefail
+set -Eeuo pipefail
 
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 cleanup_list=()
 exit_status=0
-
-configure_git(){
-    local email="${1}" \
-          name="${2}" \
-          signing_key_id="${3}" \
-          github_username="${4}" \
-          config_path="${XDG_CONFIG_HOME}/git/${PROFILE}-config"
-
-    log_debug "Configuring git with: ${name} <${email}>, signing_key = ${signing_key_id} \n Github user: ${github_username}"
-
-    case "${PROFILE}" in
-        private|work)
-            log_debug "Configuring ${PROFILE} git profile for ${email}"
-
-            cp "${XDG_CONFIG_HOME}/git/${PROFILE}-config.dist" "${config_path}"
-            sed -i '' "s|.*email.*|	email      = ${email}|g" "${config_path}"
-            sed -i '' "s|.*name.*|	name       = ${name}|g" "${config_path}"
-            sed -i '' "s|.*signingkey.*|	signingkey = ${signing_key_id}|g" "${config_path}"
-            return
-        ;;
-    esac
-
-    git config --global user.name "${name}"
-    git config --global user.email "${email}"
-    git config --global user.signingkey "${signing_key_id}"
-    git config --global github.user "${github_username}"
-}
 
 create_dirs() {
     local dirs=(
@@ -47,206 +20,6 @@ create_dirs() {
     done
 }
 
-get_gpg_keys() {
-    local email="${1}"
-
-    log_debug "Fetching GPG public keys for ${email}"
-
-    gpg --list-keys --keyid-format LONG "${email}" 2>/dev/null | rg '^pub' | awk '{print $2}' | cut -d'/' -f2 || true
-}
-
-get_gpg_secret_keys_fingerprints() {
-    local email="${1}"
-
-    log_debug "Fetching GPG secret keys for ${email}"
-
-    gpg --list-secret-keys --keyid-format LONG "${email}" 2>/dev/null | rg -A 1 '^sec' | rg '[0-9A-F]{40}' | xargs -r || true
-}
-
-get_gpg_public_key_string() {
-    local signing_key_id="${1}"
-
-    echo "${USER} $(gpg --export-ssh-key "${signing_key_id}" 2>/dev/null)"
-}
-
-delete_gpg_entries() {
-    local email="${1}" \
-          signing_key_id="${2}"
-
-    log_warning "Deleting GPG entries for: ${email} (key: ${signing_key_id})"
-
-    rg -v "$(get_gpg_public_key_string "${signing_key_id}")" ~/.ssh/allowed_singers | sponge ~/.ssh/allowed_singers || true
-    rg -v "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" | sponge "${ZDOTDIR}/local/keychain.zsh" || true
-
-    # Secret keys should be deleted first.
-    get_gpg_secret_keys_fingerprints "${email}" | xargs -r gpg --batch --delete-secret-keys --yes
-    echo "${signing_key_id}" | xargs -r gpg --batch --delete-keys --yes
-}
-
-create_gpg_agent_data_dir() {
-    local gpg_agent_data_dir="${XDG_DATA_HOME}/gnupg"
-
-    [ ! -d "${gpg_agent_data_dir}" ] && {
-        mkdir -p "${gpg_agent_data_dir}"
-        chmod 700 "${gpg_agent_data_dir}"
-    } || return 0
-}
-
-update_pinentry_path() {
-    local gpg_agent_config_file="${XDG_DATA_HOME}/gnupg/gpg-agent.conf" \
-          pinentry_path
-
-    pinentry_path="$(which pinentry-mac)"
-
-    [ ! -f "${gpg_agent_config_file}" ] && : >| "${gpg_agent_config_file}"
-
-    [ "${pinentry_path}" != "" ] && ! rg "${pinentry_path}" "${gpg_agent_config_file}" >/dev/null && {
-        echo "pinentry-program ${pinentry_path}" | tee -a "${gpg_agent_config_file}" >/dev/null
-        killall gpg-agent
-    }
-}
-
-create_gpg_key() {
-    local email="${1}" \
-          name="${2}" \
-          pass_phrase="${3}"
-
-    log_info "Creating GPG key for: ${name} <${email}>"
-
-    create_gpg_agent_data_dir
-    update_pinentry_path
-
-    local signing_key_id
-    printf -v signing_key_id '%s' "$(get_gpg_keys "${email}" | head -n 1)"
-
-    [ "${FORCE_REINSTALL}" != "true" ] && [ -n "${signing_key_id}" ] && {
-        log_info "GPG key ${signing_key_id} already exists for email: ${email}"
-        echo "${signing_key_id}"
-
-        return
-    }
-
-    [ -n "${signing_key_id}" ] && delete_gpg_entries "${email}" "${signing_key_id}"
-    log_debug "Creating batch GPG key for: ${name} <${email}>"
-
-    # export GNUPGHOME="$(mktemp -d)" # for debugging - setting gpg home to different location.
-    # https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html
-    gpg --batch --expert --generate-key -q <<eoGpgKeyParmas
-        %echo "Generating ECC keys (auth, sign & encr) with no-expiry"
-        Key-Type: EDDSA
-        Key-Curve: ed25519
-        Key-Usage: auth,sign
-        Subkey-Type: ECDH
-        Subkey-Curve: cv25519
-        Subkey-Usage: encrypt
-        Name-Comment: Git User
-        Name-Email: ${email}
-        Name-Real: ${name}
-        Expire-Date: 0
-        Passphrase: ${pass_phrase}
-        # Do a commit here, so that we can later print "done" :-)
-        %commit
-        %echo done
-eoGpgKeyParmas
-
-    get_gpg_keys "${email}" | head -n 1
-}
-
-create_ssh_key() {
-    local key_file="${1}" \
-          key_type="${2}" \
-          pass_phrase="${3}" \
-          email="${4}"
-
-    log_debug "Creating SSH key: ${key_file}"
-
-    # https://stackoverflow.com/questions/43235179/how-to-execute-ssh-keygen-without-prompt
-    ssh-keygen -f ~/.ssh/"${key_file}" -t "${key_type}" -N "${pass_phrase}" -C "${email}" -q <<<y >/dev/null 2>&1
-}
-
-create_ssh_keys() {
-    local email="${1}" \
-          pass_phrase="${2}"
-
-    log_info "Generating SSH keys for ${email}..."
-
-    local keys=(
-        "ed25519"
-        "rsa"
-    ) \
-    key \
-    key_file \
-    public_key_string
-
-    for key in "${!keys[@]}"; do
-        key_file="id_${keys[${key}]}"
-
-        [ "${FORCE_REINSTALL}" == "true" ] || [ ! -f ~/.ssh/"${key_file}" ] && {
-            create_ssh_key "${key_file}" "${keys[${key}]}" "${pass_phrase}" "${email}"
-
-            continue
-        }
-
-        log_debug "SSH key ${key_file} already exists and FORCE_REINSTALL is not true. Skipping."
-    done
-}
-
-configure_ssh_keys() {
-    local signing_key_id="${1}"
-
-    log_info "Configuring SSH keys..."
-
-    [ "${FORCE_REINSTALL}" == "true" ] && {
-        echo "" >| ~/.ssh/allowed_singers
-    }
-
-    local keys=(
-        "ed25519"
-        "rsa"
-    ) \
-    key \
-    key_file \
-    public_key_string
-
-    touch ~/.ssh/allowed_singers
-
-    for key in "${!keys[@]}"; do
-        key_file="id_${keys[${key}]}"
-        public_key_string="$(cat "${HOME}/.ssh/${key_file}.pub")"
-
-        [ "${FORCE_REINSTALL}" == "true" ] || ! rg -qF "${public_key_string}" ~/.ssh/allowed_singers && {
-            echo "${USER} $(cat "${HOME}/.ssh/${key_file}.pub")" | tee -a ~/.ssh/allowed_singers
-
-            continue
-        }
-
-        log_notice "SSH key ${key_file} does not exist or FORCE_REINSTALL is not true. Skipping."
-    done
-
-    [ -z "${signing_key_id}" ] && abort "Empty signing key id."
-
-    log_info "Exporting GPG key ${signing_key_id} as SSH key."
-
-    public_key_string="$(get_gpg_public_key_string "${signing_key_id}")"
-
-    ! rg -qF "${public_key_string}" ~/.ssh/allowed_singers && {
-        echo "${public_key_string}" | tee -a ~/.ssh/allowed_singers
-    } || return 0
-}
-
-configure_keychain() {
-    local signing_key_id="${1}"
-
-    [ "${FORCE_REINSTALL}" == "true" ] || [ ! -f "${ZDOTDIR}/local/keychain.zsh" ] && {
-        printf '%b' '#!/usr/bin/env zsh\n\n' >| "${ZDOTDIR}/local/keychain.zsh"
-    }
-
-    ! rg -qF "${signing_key_id}" "${ZDOTDIR}/local/keychain.zsh" && {
-        printf '%b' "keychain --eval --agents gpg ${signing_key_id} >/dev/null 2>&1\n" >> "${ZDOTDIR}/local/keychain.zsh"
-    } || return 0
-
-}
-
 declare_global_vars() {
     : "${XDG_CONFIG_HOME:=${HOME}/.config}"
     : "${XDG_DATA_HOME:=${HOME}/.local/share}"
@@ -259,17 +32,24 @@ declare_global_vars() {
     export GNUPGHOME
 }
 
+# Runs a command or logs it under dry run.
+run_cmd() {
+    [[ "${DRY_RUN}" == "true" ]] && { log_notice "DRY RUN: $*"; return 0; }
+
+    "$@"
+}
+
 install_home_brew() {
     log_info "Installing Homebrew for you."
 
     # @see: scripts/common.sh
-    [ "${FORCE_REINSTALL}" == "true" ] || ! is_command brew > /dev/null 2>&1 && {
+    [[ "${FORCE_REINSTALL}" == "true" ]] || ! is_command brew > /dev/null 2>&1 && {
         local installer
         installer="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || abort "Failed to download Homebrew installer."
-        bash -c "${installer}"
+        run_cmd bash -c "${installer}"
 
         eval "$(/opt/homebrew/bin/brew shellenv)"
-        sudo chmod 755 /opt/homebrew/share
+        run_cmd sudo chmod 755 /opt/homebrew/share
 
         return 0
     }
@@ -288,21 +68,22 @@ install_home_brew_deps() {
     )
 
     local opts=()
-    if [ "${FORCE_REINSTALL}" == "true" ]
+    if [[ "${FORCE_REINSTALL}" == "true" ]]
     then
         opts+=("-f")
     fi
 
-    brew up
-    brew upgrade
+    run_cmd brew up
+    run_cmd brew upgrade
 
+    local file
     for file in "${files[@]}"; do
-        if [ "${#opts[@]}" -eq 0 ]; then
+        if [[ "${#opts[@]}" -eq 0 ]]; then
             log_debug "Installing dependencies from ${file}"
-            brew bundle --file "${file}" || continue
+            run_cmd brew bundle --file "${file}" || continue
         else
             log_debug "Force installing dependencies from ${file}"
-            brew bundle --file "${file}" "${opts[@]}" || continue
+            run_cmd brew bundle --file "${file}" "${opts[@]}" || continue
         fi
     done
 }
@@ -310,69 +91,46 @@ install_home_brew_deps() {
 install_theme() {
     local themes_url="${1}" \
           target_dir="${2}" \
-          src_dir="${3:-themes}"
+          src_path="${3:-themes}"
 
     log_debug "Installing themes to ${target_dir}"
 
-    [ "${FORCE_REINSTALL}" == "true" ] || [ ! "$(ls -A "${target_dir}" 2>/dev/null)" ] && {
-        local temp_dir
-        temp_dir="$(mktemp -d)"
+    [[ "${FORCE_REINSTALL}" != "true" ]] && [[ "$(ls -A "${target_dir}" 2>/dev/null)" ]] && {
+        log_notice "Theme already exists"
 
-        log_debug "Cloning ${themes_url}"
+        return 0
+    }
 
-        git clone --depth 1 --filter=blob:none --sparse "${themes_url}" "${temp_dir}" || {
-            abort "Failed to clone the theme."
-        }
+    local temp_dir
+    temp_dir="$(mktemp -d)"
 
-        cd "${temp_dir}"
-            git sparse-checkout set "${src_dir}"
+    log_debug "Cloning ${themes_url}"
 
-            mkdir -p "${target_dir}"
+    run_cmd git clone --depth 1 --filter=blob:none --sparse "${themes_url}" "${temp_dir}" || {
+        abort "Failed to clone the theme ${themes_url}."
+    }
 
-            log_debug "Synchronizing to ${target_dir}"
+    cd "${temp_dir}"
+        run_cmd git sparse-checkout set "${src_path}"
 
-            rsync -arv --exclude='*.md' --exclude='assets' --exclude='license' --remove-source-files "${temp_dir}/${src_dir}"/* "${target_dir}"
-        cd -
+        mkdir -p "${target_dir}"
 
-        cleanup_list+=("${temp_dir}")
-    } || return 0
-}
+        log_debug "Synchronizing from ${temp_dir}/${src_path} to ${target_dir}"
 
-install_bat_themes() {
-    log_info "Installing bat themes."
+        local patterns="(^\.git|\.md$|^assets$|^changelog$|^license$)"
+        run_cmd rsync -arv \
+              --exclude-from=<(
+                    fd -HI \
+                       --type d \
+                       --type f \
+                       --prune \
+                       "${patterns}" \
+                       --base-directory "${temp_dir}/${src_path}"
+              ) \
+             --remove-source-files "${temp_dir}/${src_path}/" "${target_dir}"
+    cd -
 
-    install_theme "https://github.com/catppuccin/bat.git" "$(bat --config-dir)/themes"
-
-    {
-        bat cache --build
-        bat --list-themes -P
-        bat "$(bat --config-file)"
-    } 2>/dev/null
-}
-
-install_bottom_themes() {
-    log_info "Installing bottom themes."
-
-    install_theme "https://github.com/catppuccin/bottom.git" "${XDG_CONFIG_HOME}/bottom/themes"
-}
-
-install_btop_themes() {
-    log_info "Installing btop themes."
-
-    install_theme "https://github.com/catppuccin/btop.git" "${XDG_CONFIG_HOME}/btop/themes"
-    install_theme "https://github.com/rose-pine/btop.git" "${XDG_CONFIG_HOME}/btop/themes" "."
-}
-
-install_k9s_themes() {
-    log_info "Installing k9s themes."
-
-    install_theme "https://github.com/catppuccin/k9s.git" "${XDG_CONFIG_HOME}/k9s/skins" "dist"
-}
-
-install_lazygit_themes() {
-    log_info "Installing lazygit themes."
-
-    install_theme "https://github.com/catppuccin/lazygit.git" "${XDG_CONFIG_HOME}/lazygit/themes"
+    cleanup_list+=("${temp_dir}")
 }
 
 install_warp_themes() {
@@ -382,35 +140,23 @@ install_warp_themes() {
     install_theme "https://github.com/thanhsonng/rose-pine-warp.git" "${HOME}/.warp/themes" "."
 }
 
-install_yazi_themes() {
-    log_info "Installing yazi themes."
-
-    install_theme "https://github.com/catppuccin/yazi.git" "${XDG_CONFIG_HOME}/yazi/themes"
-}
-
 install_zsh_fast_syntax_highlighting_themes() {
     log_info "Installing zsh_fast_syntax_highlighting themes."
 
     install_theme "https://github.com/catppuccin/zsh-fsh.git" "${XDG_CONFIG_HOME}/fsh"
 
-    zsh -c 'source ${HOME}/.zshenv && fast-theme XDG:catppuccin-mocha 2>/dev/null' || return 0
+    run_cmd zsh -c 'source ${HOME}/.zshenv && fast-theme XDG:catppuccin-macchiato 2>/dev/null' || return 0
 }
 
 install_apps_themes() {
-    install_bat_themes
-    install_bottom_themes
-    install_btop_themes
-    install_k9s_themes
-    install_lazygit_themes
     install_warp_themes
-    install_yazi_themes
     install_zsh_fast_syntax_highlighting_themes
 }
 
 set_wallpapers() {
     local wallpapers_dir="${1}"
 
-    [ ! -d "${wallpapers_dir}" ] && {
+    [[ ! -d "${wallpapers_dir}" ]] && {
         log_warning "Directory ${wallpapers_dir} does not exist."
 
         return 0
@@ -418,13 +164,13 @@ set_wallpapers() {
 
     local wallpaper
     wallpaper="$(fd -e bmp -e gif -e jpg -e jpeg -e png . "${wallpapers_dir}" | shuf -n 1)"
-    [ -f "${wallpaper}" ] && {
+    [[ -f "${wallpaper}" ]] && {
 #         osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"${wallpaper}\""
-         osascript -e "tell application \"System Events\" to set picture of every desktop to POSIX file \"${wallpaper}\""
+         run_cmd osascript -e "tell application \"System Events\" to set picture of every desktop to POSIX file \"${wallpaper}\""
          log_info "Wallpaper is set to ${wallpaper}."
     }
 
-    open "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension"
+    run_cmd open "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension"
 #    osascript <<EOF
 #        tell application "System Preferences"
 #            activate
@@ -434,11 +180,11 @@ set_wallpapers() {
 }
 
 start_services() {
-    skhd --start-service
+    run_cmd skhd --start-service
 }
 
 stow_config() {
-    local dir="${1}"
+    local dir="${1:-./stow/config}"
 
     case "${dir}" in
         ./*)
@@ -449,7 +195,7 @@ stow_config() {
 
     log_info "Stowing files under ${dir} directory."
 
-    stow --adopt "${dir}"
+    run_cmd stow --adopt "${dir}"
 }
 
 # Todo: Remove this.
@@ -462,8 +208,11 @@ usage() {
 
     cat <<HELP
 ${this}: install Mac software for the first time
-Usage: ${this} [-e] environment file path [-h] help [-l] log level [-x] verbose mode
+Usage: ${this} [-e] environment file path [-d] disabled packages [-f] disabled file [-n] dry run [-h] help [-l] log level [-x] verbose mode
     -e sets the environment file path.
+    -d comma list of packages to skip, e.g. git,k9s.
+    -f global file with one package per line to skip.
+    -n dry run, prints actions without running them.
     -h to get help about the usage.
     -l sets the log priority: 2 => critical, 3 => error, 6 => info, 7 => debug.
     -x to see the executed statements.
@@ -475,13 +224,19 @@ HELP
 parse_args() {
     ENV_FILE="${ENV_FILE:-.envrc}"
     PROFILE="${PROFILE:-private}"
+    DISABLED_PACKAGES="${DISABLED_PACKAGES:-}"
+    DISABLED_FILE="${DISABLED_FILE:-}"
+    DRY_RUN="${DRY_RUN:-false}"
 
     local arg
-    while getopts "e:l:p:h?x" arg; do
+    while getopts "e:l:p:d:f:nh?x" arg; do
         case "${arg}" in
             e) ENV_FILE="${OPTARG}" ;;
             l) LOG_LEVEL="${OPTARG}" ;;
             p) PROFILE="${OPTARG}" ;;
+            d) DISABLED_PACKAGES="${OPTARG}" ;;
+            f) DISABLED_FILE="${OPTARG}" ;;
+            n) DRY_RUN="true" ;;
             h | \?) usage "${0}" ;;
             x) set -x ;;
         esac
@@ -490,20 +245,26 @@ parse_args() {
 
     LOG_LEVEL="${LOG_LEVEL:-${_log_level}}"
 
-    _log_level=$((LOG_LEVEL))
+    log_set_level "$((LOG_LEVEL))"
 }
 
 script_cleanup() {
     eval "$(/opt/homebrew/bin/brew shellenv)"
-    brew cleanup || log_warning "brew cleanup failed, continuing"
 
-    [ "${#cleanup_list[@]}" -eq 0 ] && return 0
+    run_cmd brew autoremove -v
+    run_cmd brew cleanup --prune=all || log_warning "brew cleanup failed, continuing"
+
+    [[ "${#cleanup_list[@]}" -eq 0 ]] && return 0
 
     local item
     for item in "${cleanup_list[@]}"; do
         log_notice "Deleting directory ${item}"
-        rm -rf "${item}"
+        run_cmd rm -rf "${item}"
     done
+}
+
+validate_args() {
+    [[ -z "${ENV_FILE+x}" ]] && abort 'Missing -e {{ENV_FILE}}' || return 0
 }
 
 at_exit() {
@@ -517,6 +278,7 @@ at_exit() {
         ERR)
             log_error "Command failed (exit ${ret}) at line ${line_no}: ${cmd}\n Stack trace:\n${stack_trace}"
             exit_status="${ret}"
+
             return
         ;;
         INT | TERM | QUIT)
@@ -525,41 +287,26 @@ at_exit() {
         ;;
         EXIT)
             script_cleanup
-            [ "${ret}" == 0 ] && {
+            [[ "${ret}" == 0 ]] && {
                 log_info "\n✨ Congratulations, you can now chillax!\n😎 May the odds be in your favour."
             }
         ;;
     esac
 
-    ring_bell
+    run_cmd ring_bell
+    run_cmd notify "Installation is finished with status: ${exit_status}"
 
     exit "${exit_status}"
 }
 
-build_stack_trace() {
-    local frame \
-          trace=""
-
-    for ((frame = 1; frame < ${#FUNCNAME[@]} - 1; frame++)); do
-        trace+="  at ${FUNCNAME[${frame}]} (${BASH_SOURCE[${frame}]}:${BASH_LINENO[${frame}-1]})\n"
-    done
-
-    printf '%b' "${trace}"
-}
-
-trap_with_arg() {
-    local callback="${1}"
-
-    shift
-
-    for signal in "$@"; do
-        # shellcheck disable=SC2064
-        trap "${callback} ${signal} \"\$?\" \"\${LINENO}\" \"\${BASH_COMMAND}\" \"\$(build_stack_trace)\"" "${signal}"
-    done
-}
-
-validate_args() {
-    [ -z "${ENV_FILE+x}" ] && abort 'Missing -e {{ENV_FILE}}' || return 0
+print_config() {
+    log_info "Config:"
+    log_info "  ENV_FILE=${ENV_FILE}"
+    log_info "  PROFILE=${PROFILE}"
+    log_info "  LOG_LEVEL=${LOG_LEVEL}"
+    log_info "  DRY_RUN=${DRY_RUN}"
+    log_info "  DISABLED_PACKAGES=${DISABLED_PACKAGES:-<none>}"
+    log_info "  DISABLED_FILE=${DISABLED_FILE:-./stow/.install-global-disabled}"
 }
 
 prepare() {
@@ -575,48 +322,117 @@ prepare() {
     declare_global_vars
 
     create_dirs
+    print_config
+}
+
+# Package name from the installer path.
+package_name() {
+    local input_dir="${1#./}" \
+          install_script="${2#./}" \
+          rel
+    case "${install_script}" in
+        "${input_dir}"/*)
+            rel="${install_script:${#input_dir}+1}"
+        ;;
+        *)
+            rel="${install_script}"
+        ;;
+    esac
+
+    printf '%s\n' "${rel%%/*}"
+}
+
+# Package directory: whatever directly contains scripts/install.sh,
+# regardless of nesting (stow/nvim, stow/.config/nvim, stow/.ssh, ...).
+package_dir() {
+    dirname "$(dirname "${1}")"
+}
+
+# Package name: the last path segment of its directory.
+package_name() {
+    local dir
+    dir="$(package_dir "${1}")"
+
+    printf '%s\n' "${dir##*/}"
+}
+
+# Prints the reason and returns 0 when disabled.
+disabled_reason() {
+    local pkg_dir="${1}" \
+          pkg="${2}" \
+          input_dir="${3}"
+
+    local global="${DISABLED_FILE:-${input_dir}/.install-global-disabled}"
+
+    [[ ",${DISABLED_PACKAGES}," == *",${pkg},"* ]] && { printf 'cli\n'; return 0; }
+    [[ -f "${pkg_dir}/.install-local-disabled" ]] && { printf 'local\n'; return 0; }
+    [[ -f "${global}" ]] && rg -qxF -- "${pkg}" "${global}" && { printf 'global\n'; return 0; }
+
+    return 1
+}
+
+run_installers() {
+     local input_dir="${1:-./stow}" \
+           scripts_pattern="${2:-.*/scripts/install\.sh$}" \
+           install_script \
+           pkg \
+           pkg_dir \
+           reason \
+           status
+
+     if [[ ! -d "${input_dir}" ]]; then
+         log_error "input dir '${input_dir}' not found" >&2
+
+         return 1
+     fi
+
+     while IFS= read -r -d '' install_script; do
+         pkg="$(package_name "${install_script}")"
+         pkg_dir="$(package_dir "${install_script}")"
+
+         reason="$(disabled_reason "${pkg_dir}" "${pkg}" "${input_dir}")" && {
+             log_notice "Skipped (${reason}): ${pkg}"
+             continue
+         }
+
+         log_info "Running: ${install_script}"
+
+         [[ "${DRY_RUN}" == "true" ]] && { log_notice "DRY RUN: would run ${install_script}"; continue; }
+
+         # shellcheck disable=SC1090
+         ( source "${install_script}" "$@" ) && status=0 || status=$?
+
+         [[ ${status} -eq 0 ]] && {
+             log_info "OK: ${install_script}"
+             continue
+         }
+
+         log_error "FAILED (${status}): ${install_script}" >&2
+     done < <(fd -t f -p -H -I -0 "${scripts_pattern}" "${input_dir}")
 }
 
 install() {
     install_home_brew
     install_home_brew_deps "./stow/.config/homebrew"
 
-    # Stowing is necessary here, for bat theme config file.
+    # Stowing is necessary here, for the bat theme config file.
     stow_config "./stow"
 
+    # shellcheck disable=SC2119
+    run_installers "./stow"
+
     install_apps_themes
-}
-
-create() {
-    # shellcheck disable=SC2153
-    create_ssh_keys "${GIT_EMAIL}" "${PASS_PHRASE}" >&2
-    create_gpg_key "${GIT_EMAIL}" "${GIT_USER}" "${PASS_PHRASE}"
-}
-
-configure() {
-    local signing_key_id="${1}"
-
-    # shellcheck disable=SC2153
-    configure_ssh_keys "${signing_key_id}"
-    # shellcheck disable=SC2153
-    configure_git "${GIT_EMAIL}" "${GIT_USER}" "${signing_key_id}" "${GITHUB_USERNAME}"
-
-    configure_keychain "${signing_key_id}"
 }
 
 main() {
     prepare "$@"
     install
 
-    {
-        read -r signing_key_id
-    } <<< "$(create)"
-
-    configure "${signing_key_id}"
-
     start_services
 
     set_wallpapers "$(realpath "./wallpapers")"
 }
 
-main "$@"
+if ! is_bash_sourced; then
+    main "$@"
+fi

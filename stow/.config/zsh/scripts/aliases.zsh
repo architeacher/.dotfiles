@@ -57,6 +57,37 @@ hash eza > /dev/null 2>&1 && {
     alias lx='la -@'
 }
 
+# +-----+
+# | Git |
+# +-----+
+
+alias ga='git add -v'
+alias gb='git branch'
+alias gba='git branch --all'
+alias gbD='git branch --delete --force'
+alias gbd='git branch --delete'
+alias gbvv='git branch -vv'
+alias gc='git commit --verbose'
+alias gcb='git checkout -b'
+alias gco='git checkout'
+alias gcs='git commit --gpg-sign -v'
+alias gd='git diff'
+alias gdca='git diff --cached'
+alias gdn='git diff --name-only'
+alias gf='git fetch'
+alias gfa='git fetch --all --tags --prune --jobs=10'
+alias glg='git log --stat'
+alias glgg='git log --graph'
+alias glgp='git log --stat --patch'
+alias gsh='git show'
+alias convential-commits='printf "build\nchore\nci\ndocs\nfeat\nfix\nperf\nrefactor\nstyle\ntest\n"'
+
+# +----+
+# | Go |
+# +----+
+
+alias godeps='go list -u -f "{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}" -m all 2> /dev/null'
+
 # +---------+
 # | Helpers |
 # +---------+
@@ -138,7 +169,9 @@ alias rd=rmdir
 # +------------+
 
 alias flushdns='dscacheutil -flushcache; sudo killall -HUP mDNSResponder;echo DNS cache flushed'
-alias ip='ipconfig getifaddr en0'
+alias ip='dig +short myip.opendns.com @resolver1.opendns.com'
+alias localip='ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "No active interface"'
+alias open-ports="lsof -i -P -n | grep LISTEN"
 
 # +--------+
 # | Search |
@@ -204,8 +237,9 @@ alias tmxn='tmux new-session -s'               # Creates a new session.
 alias rm='rm -I'
 
 # Safer reversible file removal: https://github.com/sindresorhus/trash-cli
+# Also, clear Apple's System Logs and Quick-Look cache to improve shell startup speed.
 which trash > /dev/null 2>&1 && {
-    alias purge='unalias rm && sudo rm -rf ${XDG_DATA_HOME}/Trash/*; alias rm="trash -i"'
+    alias purge='unalias rm && sudo rm -rfv ${XDG_DATA_HOME}/Trash/* 2>&1; sudo rm -rfv /private/var/log/asl/*.asl; qlmanage -r cache >/dev/null 2>&1; alias rm="trash"'
     alias rm='trash'
 }
 

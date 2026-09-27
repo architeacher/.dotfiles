@@ -16,3 +16,6 @@ PASS_PHRASE="b0tt0m.\$ecreT"
 # - private
 # - work
 PROFILE="private"
+
+# Setting log level to INFO
+LOG_LEVEL=6

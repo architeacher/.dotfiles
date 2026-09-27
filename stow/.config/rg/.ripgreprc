@@ -1,0 +1,14 @@
+# Search hidden files
+--hidden
+
+# Don't bother searching git
+--glob=!.git/*
+
+# Truncates any matched line longer than 150 chars, printing [... omitted long line].
+--max-columns=150
+
+# Ignore casing
+--smart-case
+
+# Lets you run rg --type web pattern to search only those extensions, without listing them each time.
+--type-add=web:*.{html,css,js}

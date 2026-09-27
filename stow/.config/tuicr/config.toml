@@ -1,0 +1,28 @@
+# https://github.com/agavra/tuicr/blob/main/docs/CONFIG.md
+appearance  = "system"
+theme_dark  = "solarized-dark"
+theme_light = "solarized-light"
+
+comment_tab_width        = 4
+comment_vim              = false
+cursor_line              = true
+diff_view                = "side-by-side"
+ignore_whitespace        = true
+leader                   = " "
+mouse                    = true
+no_update_check          = false
+relative_line_numbers    = false
+review_watch_interval_ms = 1000
+scroll_offset            = 5
+show_file_list           = true
+transparent_background   = true
+wrap                     = true
+
+comment_types = [
+    { id = "question", definition = "ask for clarification", color = "yellow" },
+    { id = "suggestion", definition = "possible improvements" },
+    { id = "issue", definition = "problems to fix" },
+    { id = "praise", definition = "positive feedback" },
+    { id = "note", label = "note", definition = "non-blocking but something to be aware of" },
+    { id = "thought", definition = "something that cropped up during review", color = "#d19a66" },
+]
