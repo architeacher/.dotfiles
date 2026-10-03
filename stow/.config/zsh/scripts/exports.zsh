@@ -34,6 +34,7 @@ export DOTFILES="${HOME}/.dotfiles"
 
 export AWS_CONFIG_FILE="${XDG_CONFIG_HOME}/aws/config"
 export AWS_SHARED_CREDENTIALS_FILE="${XDG_CONFIG_HOME}/aws/credentials"
+export AWS_PROFILE="Staging"
 
 # +-----------------------+
 # | Bat (The better cat!) |
@@ -42,6 +43,12 @@ export AWS_SHARED_CREDENTIALS_FILE="${XDG_CONFIG_HOME}/aws/credentials"
 # Bat: https://github.com/sharkdp/bat
 # highlighting theme: https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-themes
 export BAT_THEME="Catppuccin Mocha"
+
+# +--------+
+# | Claude |
+# +--------+
+
+export CLAUDE_CONFIG_DIR="${XDG_CONFIG_HOME}/claude"
 
 # +-------------+
 # | COMPLETIONS |
@@ -292,7 +299,7 @@ export PAGER='less'
 # | Netrc |
 # +-------+
 
-export NETRC="${DOTFILES}/private/.config/netrc"
+export NETRC="${XDG_CONFIG_HOME}/netrc"
 
 # +----+
 # | RG |
@@ -300,8 +307,15 @@ export NETRC="${DOTFILES}/private/.config/netrc"
 
 export RIPGREP_CONFIG_PATH="${XDG_CONFIG_HOME}/rg/.ripgreprc"
 
+# +------+
+# | Sops |
+# +------+
+
+export SOPS_AGE_KEY_FILE="${XDG_CONFIG_HOME}/sops/age/keys.txt"
+export SOPS_AGE_SSH_PRIVATE_KEY_FILE="${HOME}/.ssh/id_ed25519_sops"
+
 # +----------+
 # | Starship |
 # +----------+
 
-export STARSHIP_CONFIG="${XDG_CONFIG_HOME}/starship/starship.toml"
+export STARSHIP_CONFIG="${XDG_CONFIG_HOME}/starship/config.toml"

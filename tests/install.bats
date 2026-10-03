@@ -209,6 +209,37 @@ teardown() {
     [ -d "${XDG_STATE_HOME}/zsh/sessions" ]
 }
 
+# --- init_defaults ---------------------------------------------------------
+
+@test "init_defaults: fills unset variables and keeps preset ones" {
+    local cases=(
+        "ENV_FILE||.envrc"
+        "ENV_FILE|custom.envrc|custom.envrc"
+        "PROFILE||private"
+        "PROFILE|work|work"
+        "DISABLED_PACKAGES||"
+        "DISABLED_FILE||"
+        "DRY_RUN||false"
+        "DRY_RUN|true|true"
+        "LOG_LEVEL||${_log_level}"
+        "LOG_LEVEL|7|7"
+    ) \
+        entry \
+        name \
+        preset \
+        expected
+
+    for entry in "${cases[@]}"; do
+        IFS='|' read -r name preset expected <<< "${entry}"
+
+        unset "${name}"
+        [ -z "${preset}" ] || printf -v "${name}" '%s' "${preset}"
+
+        init_defaults
+        [ "${!name}" == "${expected}" ]
+    done
+}
+
 # --- parse_args / validate_args --------------------------------------------
 
 @test "parse_args: defaults ENV_FILE and PROFILE" {

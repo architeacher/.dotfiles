@@ -1,7 +1,7 @@
 "$schema" = "https://starship.rs/config-schema.json"
 
 add_newline         = false
-command_timeout     = 1000
+command_timeout     = 1008
 continuation_prompt = "▶▶ "
 
 format = """\
@@ -20,7 +20,9 @@ ${golang}\
 [\uE0B0](bg:lavender fg:sky)\
 ${lua}\
 ${php}\
-[\uE0B0](bg:surface0 fg:lavender)\
+[\uE0B0](bg:#f1fa8c fg:lavender)\
+${python}\
+[\uE0B0](bg:surface0 fg:#f1fa8c)\
 ${docker_context}\
 ${kubernetes}\
 [\uE0B0](bg:green fg:surface0)\
@@ -31,7 +33,9 @@ ${git_status}\
 ${git_metrics}\
 [\uE0B0](bg:#04a5e5 fg:green)\
 ${terraform}\
-[\uE0B0](fg:#04a5e5)\
+[\uE0B0](bg:#ea9d34 fg:#04a5e5)\
+${aws}\
+[\uE0B0](fg:#ea9d34)\
 ${line_break}\
 ${character}\
 """
@@ -48,10 +52,11 @@ ${time}\
 """
 
 [aws]
-format   = '[${symbol}(profile: "${profile}" )(\(region: ${region}\) )](${style})'
-disabled = false
-style    = "bold blue"
-symbol   = " "
+format            = '[${symbol} ( "${region}" )(\(${profile}\) )](${style})'
+disabled          = false
+expiration_symbol = "❌"
+style             = "bg:#ea9d34 fg:bold surface0"
+symbol            = " ☁️"
 
 [battery]
 format             = "[ ${symbol} ${percentage} ](${style})"
@@ -239,6 +244,11 @@ yellow    = "#f9e2af"
 format = "[ ${symbol}( ${version}) ](${style})"
 style  = "bg:lavender fg:#9a348e"
 symbol = "🐘 "
+
+[python]
+format = "[ ${symbol}( ${version}) ](${style})"
+style  = "bg:#f1fa8c fg:#3e7cad"
+symbol = "🐍"
 
 [rust]
 format = "[ ${symbol}( ${version}) ](${style})"

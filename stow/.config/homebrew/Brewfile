@@ -78,9 +78,11 @@ brew "procs"                                # Lists all processes.
 brew "ripgrep"                              # 🧐 Recursive Regex search tool.
 brew "safe-rm"                              # ❌ Prevent the accidental deletion of important files.
 brew "sd"                                   # Intuitive find & replace CLI (sed alternative).
+brew "shellcheck"                           # Static analysis and lint tool, for (ba)sh scripts.
 brew "sponge"                               # 🧽 A tool similar to tee, but soaks up all its input before opening the output file.
 brew "starship"                             # 🚀 Starship cross-shell prompt.
 brew "stow"                                 # 🔗 A symlink farm manager.
+brew "superfile"                            # Modern and pretty fancy file manager for the terminal.
 brew "telnet"
 brew "tldr"                                 # 📰 A simplified and community-driven man pages.
 brew "tmux"                                 # 🫖 mux.
@@ -99,9 +101,12 @@ brew "zoxide"                               # 🤓 A smarter cd command.
 
 # Security
 brew "age"                                  # 👴 A modern and secure file encryption tool.
+brew "age-plugin-yubikey"                   # Plugin for encrypting files with age and PIV tokens such as YubiKeys.
+brew "gitleaks"                             # Audit git repos for secrets
 brew "nmap"                                 # 🕵️‍♂️ A port scanning utility for large networks.
 brew "sops"                                 # Editor of encrypted files.
 brew "trivy"                                # 🕵🏻‍♂️ A security scanner for vulnerabilities, misconfigurations, secrets.
+brew "ykman"                                # Tool for managing your YubiKey configuration
 
 # Terminal Fun
 brew "cowsay"
@@ -136,11 +141,11 @@ cask "codex"                                # 🤖 Open AI codex.
 cask "ghostty"                              # 👻 An ultra fast terminal emulator.
 
 # Fonts - Nerd fonts for the terminal - https://www.nerdfonts.com/
+cask "font-annotationmono-nerd-font"        # AnnotationM Nerd Font
 cask "font-comic-shanns-mono-nerd-font"     # ComicShannsMono Nerd Font
-cask "font-envy-code-r-nerd-font"           # EnvyCodeR Nerd Font
 cask "font-hack-nerd-font"                  # Hack Nerd Font
-cask "font-jetbrains-mono-nerd-font"        # JetbrainsMono Nerd Font
-cask "font-sauce-code-pro-nerd-font"        # Source Code Pro Mono Nerd Font
+cask "font-hurmit-nerd-font"                # Hurmit Nerd Font
+cask "font-opendyslexic-nerd-font"          # OpenDyslexic Nerd Font
 
 # Fonts - Normal
 cask "font-open-sans"

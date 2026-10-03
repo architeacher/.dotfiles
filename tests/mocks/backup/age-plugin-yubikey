@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Test double for age-plugin-yubikey: prints a fixed identity stub.
+printf '#       Serial: 1, Slot: 1\n#    Recipient: age1yubikey1qtestrecipient\nAGE-PLUGIN-YUBIKEY-1TEST\n'

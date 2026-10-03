@@ -19,14 +19,11 @@ set -Eeuo pipefail
 #   rather than executed.
 
 readonly ROOT_INSTALL="scripts/install.sh"
-readonly MAIN_CALL_PATTERN='^\s*main\s+"\$@"\s*$'
+readonly MAIN_CALL_PATTERN='^([[:space:]]*)main[[:space:]]+"\$@"[[:space:]]*$'
 readonly FN_DEF_PATTERN='^\s*(?:function\s+)?\K\w+(?=\s*\(\s*\)\s*\{)'
+# Matches the literal text $(dirname "${BASH_SOURCE[0]}"), so it must not expand.
+# shellcheck disable=SC2016
 readonly SIBLING_DIR_PATTERN='\$(dirname "\${BASH_SOURCE\[0\]}")'
-
-TMP_DIR="$(mktemp -d)"
-readonly TMP_DIR
-
-trap 'rm -rf "${TMP_DIR}"' EXIT
 
 find_install_scripts() {
     local pattern='.*/scripts/install\.sh$'
@@ -118,11 +115,13 @@ pick_function() {
         --preview 'show_function_body {2} {3}'
 }
 
-# Strips the trailing `main "$@"` self-exec call so a file can be sourced
-# without immediately re-running its own main.
+# Replaces the `main "$@"` self-exec call with a no-op so a file can be sourced
+# without re-running its own main. A no-op, not a deletion, keeps wrappers such
+# as `if ! is_bash_sourced; then ... fi` syntactically valid.
 strip_main_call() {
     local file="${1}"
-    grep -Ev "${MAIN_CALL_PATTERN}" "${file}"
+
+    sed -E "s/${MAIN_CALL_PATTERN}/\1:/" "${file}"
 }
 
 # Rewrites the sibling-resolution idiom to an absolute path, so a staged copy can
@@ -197,7 +196,6 @@ prompt_for_args() {
     eval "SELECTED_ARGS=(${raw})"
 }
 
-
 run_selected_function() {
     local fn="${1}" \
           file="${2}"
@@ -205,6 +203,7 @@ run_selected_function() {
     load_shared_context "${file}"
     source_installer "${file}"
 
+    declare -F "init_defaults" > /dev/null && init_defaults
     declare -F "include_env_vars" > /dev/null && include_env_vars
     declare -F "declare_global_vars" > /dev/null && declare_global_vars
 
@@ -225,6 +224,9 @@ main() {
 
     declare -a SELECTED_ARGS=()
 
+    TMP_DIR="$(mktemp -d)"
+    trap 'rm -rf "${TMP_DIR}"' EXIT
+
     candidates="$(collect_all_functions)"
     [[ -n "${candidates}" ]] || { log_error "No functions found" >&2; return 1; }
 
@@ -237,4 +239,6 @@ main() {
     run_selected_function "${fn}" "${file}"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

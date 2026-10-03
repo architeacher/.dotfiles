@@ -67,6 +67,26 @@ Please follow these instructions to set up your Mac.
     ```bash
     make install
     ```
+
+5. Secrets
+    Private config files live sops-encrypted in the `private/` submodule.
+    After restoring your keys (step 6), decrypt them and enable the guard against plaintext commits once:
+    ```bash
+    make decrypt
+    make hooks
+    ```
+    Edit the decrypted copies in `private/`, then run `make encrypt` before committing.
+
+6. Key backups
+    sops needs your gpg, age, YubiKey and ssh keys. Back them up, copy the archive to two offline media, and test it:
+    ```bash
+    make backup KEY="john.doe@foo.bar"   # writes a passphrase-protected archive
+    make test-restore                    # checks the latest backup, changes nothing
+    ```
+    On a new Mac, `make restore` puts the keys back (`BACKUP_DIR=` to pick an older backup).
+    `make docker-extract` rehearses the whole restore on a clean machine.
+    See [docs/architecture.md](docs/architecture.md) for how it works.
+
 ## Feedback
 
 Suggestions/improvements are

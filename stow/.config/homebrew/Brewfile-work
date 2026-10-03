@@ -1,0 +1,4 @@
+# Apps
+
+cask "awscli"                   # Official Amazon AWS command-line interface
+cask "aws-vpn-client"           # Managed client-based VPN service to securely access AWS resources.
