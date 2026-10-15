@@ -179,6 +179,44 @@ set_wallpapers() {
 #EOF
 }
 
+# Enables Touch ID for sudo via /etc/pam.d/sudo_local (macOS 14+).
+enable_touch_id_sudo() {
+    log_info "Enabling Touch ID for sudo."
+
+    local template="/etc/pam.d/sudo_local.template" \
+          target="/etc/pam.d/sudo_local" \
+          reattach="/opt/homebrew/lib/pam/pam_reattach.so" \
+          new
+
+    [[ -f "${template}" ]] || { log_warning "Needs macOS 14+, skipping."; return 0; }
+
+    [[ -f "${target}" ]] && {
+        rg -q '^auth\s+sufficient\s+pam_tid\.so' "${target}" && {
+            log_notice "Touch ID for sudo is already enabled."
+
+            return 0
+        }
+
+        log_warning "${target} exists without pam_tid. Edit it by hand."
+
+        return 0
+    }
+
+    new="$(mktemp)"
+    cleanup_list+=("${new}")
+
+    {
+        # Needed for tmux and screen. Must come before pam_tid.
+        [[ -f "${reattach}" ]] && printf 'auth       optional       %s\n' "${reattach}"
+        sed 's/^#auth/auth/' "${template}"
+    } > "${new}"
+
+    log_info "Diff for ${target}:"
+    diff -u /dev/null "${new}" || true
+
+    run_cmd sudo install -m 444 -o root -g wheel "${new}" "${target}"
+}
+
 start_services() {
     run_cmd skhd --start-service
 }
@@ -221,12 +259,19 @@ HELP
     exit 0
 }
 
+# Defaults every variable the installer functions read, keeping preset values,
+# so entry points that skip parse_args (scripts/sel-install.sh) work under set -u.
+init_defaults() {
+    : "${ENV_FILE:=.envrc}"
+    : "${PROFILE:=private}"
+    : "${DISABLED_PACKAGES:=}"
+    : "${DISABLED_FILE:=}"
+    : "${DRY_RUN:=false}"
+    : "${LOG_LEVEL:=${_log_level}}"
+}
+
 parse_args() {
-    ENV_FILE="${ENV_FILE:-.envrc}"
-    PROFILE="${PROFILE:-private}"
-    DISABLED_PACKAGES="${DISABLED_PACKAGES:-}"
-    DISABLED_FILE="${DISABLED_FILE:-}"
-    DRY_RUN="${DRY_RUN:-false}"
+    init_defaults
 
     local arg
     while getopts "e:l:p:d:f:nh?x" arg; do
@@ -242,8 +287,6 @@ parse_args() {
         esac
     done
     shift $((OPTIND - 1))
-
-    LOG_LEVEL="${LOG_LEVEL:-${_log_level}}"
 
     log_set_level "$((LOG_LEVEL))"
 }
@@ -323,23 +366,6 @@ prepare() {
 
     create_dirs
     print_config
-}
-
-# Package name from the installer path.
-package_name() {
-    local input_dir="${1#./}" \
-          install_script="${2#./}" \
-          rel
-    case "${install_script}" in
-        "${input_dir}"/*)
-            rel="${install_script:${#input_dir}+1}"
-        ;;
-        *)
-            rel="${install_script}"
-        ;;
-    esac
-
-    printf '%s\n' "${rel%%/*}"
 }
 
 # Package directory: whatever directly contains scripts/install.sh,
@@ -422,6 +448,7 @@ install() {
     run_installers "./stow"
 
     install_apps_themes
+    enable_touch_id_sudo
 }
 
 main() {
@@ -433,6 +460,4 @@ main() {
     set_wallpapers "$(realpath "./wallpapers")"
 }
 
-if ! is_bash_sourced; then
-    main "$@"
-fi
+is_bash_sourced || main "$@"

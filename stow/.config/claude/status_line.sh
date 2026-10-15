@@ -1,278 +1,355 @@
 #!/usr/bin/env bash
 
-set -uo pipefail
+# Claude Code status line in the Starship style, Catppuccin Mocha colors.
+# Reads the session JSON on stdin: https://code.claude.com/docs/en/statusline
+# Standalone on purpose: logger.sh writes to stdout, which is the status line.
 
-# Enhanced Claude Code Statusline
-# Matches Starship prompt visual style with Catppuccin Mocha colors
+# No -e: a failing segment prints nothing, the rest of the line still renders.
+set -Euo pipefail
 
-# Catppuccin Mocha palette (ANSI true color)
-reset=$'\033[0m'
-blue=$'\033[38;2;137;180;250m'
-green=$'\033[38;2;166;227;161m'
-sky=$'\033[38;2;137;220;235m'
-lavender=$'\033[38;2;180;190;254m'
-mauve=$'\033[38;2;203;166;247m'
-peach=$'\033[38;2;250;179;135m'
-text=$'\033[38;2;205;214;244m'
-yellow=$'\033[38;2;249;226;175m'
+# Catppuccin Mocha, as "r;g;b" for 24-bit ANSI colors.
+blue="137;180;250"
+green="166;227;161"
+sky="137;220;235"
+lavender="180;190;254"
+mauve="203;166;247"
+peach="250;179;135"
+red="243;139;168"
+text="205;214;244"
+yellow="249;226;175"
 
-# Read input from Claude Code
-input=$(cat)
-cwd=$(printf '%s' "${input}" | jq -r '.workspace.current_dir // empty')
+# Nerd Font glyphs as bytes, so editors cannot strip the private-use characters.
+# BMP only (U+E000-U+F8FF): JetBrains' JediTerm draws glyphs above U+FFFF at a
+# different width than Claude Code assumes, which garbles the redrawn line.
+icon_apple=$'\xef\x85\xb9'
+icon_linux=$'\xef\x85\xbc'
+icon_other_os=$'\xef\x84\x88'
+icon_home=$'\xef\x80\x95'
+icon_folder=$'\xef\x81\xbc'
+icon_branch=$'\xef\x90\x98'
+icon_commit=$'\xef\x90\x97'
+icon_modified=$'\xef\x81\x80'
+icon_untracked=$'\xef\x84\xa8'
+icon_go=$'\xee\x98\xa7'
+icon_rust=$'\xee\x9e\xa8'
+icon_zig=$'\xee\x9a\xa9'
+icon_lua=$'\xee\x98\xa0'
+icon_node=$'\xee\x9c\x98'
+icon_php=$'\xee\x9c\xbd'
+icon_python=$'\xee\x88\xb5'
+icon_docker=$'\xef\x8c\x88'
+icon_model=$'\xef\x92\xb8'
+icon_context=$'\xef\x83\xa4'
+icon_memory=$'\xef\x92\xbc'
+icon_clock=$'\xef\x80\x97'
 
-# Fallback if no cwd
-if [[ -z "${cwd}" ]]; then
-  cwd=$(pwd)
-fi
+dir_max_parts=4
+memory_threshold=85
+context_warning=50
+context_high=75
+context_critical=90
+# Cells Claude Code keeps for its own spacing; tune if the line wraps or ends short.
+right_margin=4
+min_gap=3
+field_separator=$'\x1f'
 
-# --- Functions ---
+session_cwd=""
+session_model=""
+session_context=""
+session_cost=""
 
-get_os_symbol() {
-  case "$(uname -s)" in
-    Darwin) printf '%s' "${blue} 󰀵${reset}" ;;
-    Linux)  printf '%s' "${blue}󰌽${reset}" ;;
-    *)      printf '%s' "${blue}󰍲${reset}" ;;
-  esac
+# Prints text in an "r;g;b" color, plain when NO_COLOR is set (no-color.org).
+paint() {
+    local rgb="${1}" \
+          content="${2}"
+
+    [[ -n "${NO_COLOR:-}" ]] && { printf '%s' "${content}"; return 0; }
+
+    printf '\033[38;2;%sm%s\033[0m' "${rgb}" "${content}"
 }
 
-get_username() {
-  printf '%s' "${lavender}${USER:-$(whoami)}${reset}"
+# Fills the session_* globals from the JSON in one jq call.
+parse_session() {
+    local input="${1}" \
+          fields
+
+    fields="$(printf '%s' "${input}" | jq -r --arg sep "${field_separator}" '[
+        .workspace.current_dir // .cwd // "",
+        .model.display_name // "",
+        (.context_window.used_percentage // "" | tostring),
+        (.cost.total_cost_usd // "" | tostring)
+    ] | join($sep)' 2>/dev/null)" || fields=""
+
+    IFS="${field_separator}" read -r session_cwd session_model session_context session_cost <<< "${fields}"
+
+    : "${session_cwd:=${PWD}}"
 }
 
-get_directory() {
-  local dir="${1}"
-  local home_symbol="  ~"
+format_os() {
+    local icon="${icon_other_os}"
 
-  # Replace home with symbol
-  if [[ "${dir}" == "${HOME}"* ]]; then
-    dir="${home_symbol}${dir#${HOME}}"
-  fi
+    case "$(uname -s)" in
+        Darwin) icon="${icon_apple}" ;;
+        Linux) icon="${icon_linux}" ;;
+    esac
 
-  # Truncate to last 3 parts (Bash 3.2 compatible)
-  local IFS='/'
-  local parts
-  read -ra parts <<< "${dir}"
-  local len=${#parts[@]}
-
-  if [[ ${len} -gt 4 ]]; then
-    dir="…/${parts[$((len-3))]}/${parts[$((len-2))]}/${parts[$((len-1))]}"
-  fi
-
-  printf '%s' "${blue}  ${dir}${reset}"
+    paint "${blue}" "${icon}"
 }
 
-get_git_info() {
-  local cwd="${1}"
-  local result=""
+format_user() {
+    paint "${lavender}" "${USER:-$(whoami)}"
+}
 
-  # Check if in git repo
-  if ! git -C "${cwd}" rev-parse --git-dir > /dev/null 2>&1; then
-    return
-  fi
+# Replaces the home prefix with an icon and keeps only the last parts of long paths.
+format_directory() {
+    local dir="${1}" \
+          home="${2}" \
+          parts \
+          count
 
-  # Get branch or commit hash (detached HEAD)
-  local branch
-  branch=$(git -C "${cwd}" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null)
-  if [[ -z "${branch}" ]]; then
-    # Detached HEAD - show commit hash
-    local commit
-    commit=$(git -C "${cwd}" --no-optional-locks rev-parse --short HEAD 2>/dev/null)
-    if [[ -n "${commit}" ]]; then
-      result="${green}  ${peach}${commit}${reset}"
+    [[ "${dir}" == "${home}" || "${dir}" == "${home}/"* ]] && dir="${icon_home} ~${dir#"${home}"}"
+
+    IFS='/' read -ra parts <<< "${dir}"
+    count="${#parts[@]}"
+
+    [[ "${count}" -gt "${dir_max_parts}" ]] && {
+        dir="…/${parts[count - 3]}/${parts[count - 2]}/${parts[count - 1]}"
+    }
+
+    paint "${blue}" "${icon_folder} ${dir}"
+}
+
+# Prints "ahead behind staged modified untracked" from `git status --porcelain=v1 -b`.
+count_git_status() {
+    local status_output="${1}" \
+          ahead=0 \
+          behind=0 \
+          staged=0 \
+          modified=0 \
+          untracked=0 \
+          line
+
+    while IFS= read -r line; do
+        [[ -z "${line}" ]] && continue
+
+        [[ "${line}" == "##"* ]] && {
+            [[ "${line}" =~ ahead\ ([0-9]+) ]] && ahead="${BASH_REMATCH[1]}"
+            [[ "${line}" =~ behind\ ([0-9]+) ]] && behind="${BASH_REMATCH[1]}"
+            continue
+        }
+
+        [[ "${line:0:1}" == "?" ]] && { untracked=$((untracked + 1)); continue; }
+        [[ "${line:0:1}" =~ [MADRC] ]] && staged=$((staged + 1))
+        [[ "${line:1:1}" == "M" ]] && modified=$((modified + 1))
+    done <<< "${status_output}"
+
+    printf '%s %s %s %s %s' "${ahead}" "${behind}" "${staged}" "${modified}" "${untracked}"
+}
+
+format_git_counts() {
+    local ahead="${1}" \
+          behind="${2}" \
+          staged="${3}" \
+          modified="${4}" \
+          untracked="${5}"
+
+    [[ "${ahead}" -gt 0 ]] && paint "${mauve}" "⇡${ahead}"
+    [[ "${behind}" -gt 0 ]] && paint "${mauve}" "⇣${behind}"
+    [[ "${staged}" -gt 0 ]] && paint "${green}" "++(${staged})"
+    [[ "${modified}" -gt 0 ]] && paint "${yellow}" "${icon_modified} ${modified}"
+    [[ "${untracked}" -gt 0 ]] && paint "${peach}" "${icon_untracked} ${untracked}"
+
+    return 0
+}
+
+format_git() {
+    local cwd="${1}" \
+          branch \
+          counts
+
+    git -C "${cwd}" rev-parse --git-dir > /dev/null 2>&1 || return 0
+
+    branch="$(git -C "${cwd}" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null)"
+
+    if [[ -n "${branch}" ]]; then
+        paint "${green}" "${icon_branch} ${branch}"
+    else
+        paint "${peach}" "${icon_commit} $(git -C "${cwd}" --no-optional-locks rev-parse --short HEAD 2>/dev/null)"
     fi
-  else
-    result="${green}  ${branch}${reset}"
-  fi
 
-  # Git status indicators
-  local status_output
-  status_output=$(git -C "${cwd}" --no-optional-locks status --porcelain=v1 -b 2>/dev/null)
+    counts="$(count_git_status "$(git -C "${cwd}" --no-optional-locks status --porcelain=v1 -b 2>/dev/null)")"
 
-  local ahead=0 behind=0 modified=0 staged=0 untracked=0
+    # shellcheck disable=SC2086 # counts is five space-separated numbers, split on purpose.
+    counts="$(format_git_counts ${counts})"
+    [[ -n "${counts}" ]] && printf ' %s' "${counts}"
 
-  # Parse ahead/behind from first line
-  local first_line
-  first_line=$(printf '%s' "${status_output}" | head -n1)
-  if [[ "${first_line}" =~ \[ahead\ ([0-9]+) ]]; then
-    ahead=${BASH_REMATCH[1]}
-  fi
-  if [[ "${first_line}" =~ behind\ ([0-9]+) ]]; then
-    behind=${BASH_REMATCH[1]}
-  fi
-
-  # Count file statuses
-  while IFS= read -r line; do
-    [[ -z "${line}" || "${line}" == \#\#* ]] && continue
-    local index="${line:0:1}"
-    local worktree="${line:1:1}"
-
-    # Staged changes (index has changes)
-    if [[ "${index}" =~ [MADRC] ]]; then
-      ((staged++))
-    fi
-    # Modified in worktree
-    if [[ "${worktree}" == "M" ]]; then
-      ((modified++))
-    fi
-    # Untracked
-    if [[ "${index}" == "?" ]]; then
-      ((untracked++))
-    fi
-  done <<< "${status_output}"
-
-  # Build status string
-  local status_str=""
-  if [[ ${ahead} -gt 0 ]]; then
-    status_str+="${mauve}⇡${ahead}${reset}"
-  fi
-  if [[ ${behind} -gt 0 ]]; then
-    status_str+="${mauve}⇣${behind}${reset}"
-  fi
-  if [[ ${staged} -gt 0 ]]; then
-    status_str+="${green}++(${staged})${reset}"
-  fi
-  if [[ ${modified} -gt 0 ]]; then
-    status_str+="${yellow} ${modified}${reset}"
-  fi
-  if [[ ${untracked} -gt 0 ]]; then
-    status_str+="${peach} ${untracked}${reset}"
-  fi
-
-  if [[ -n "${status_str}" ]]; then
-    result+=" ${status_str}"
-  fi
-
-  printf '%s' "${result}"
+    return 0
 }
 
-get_language() {
-  local cwd="${1}"
-  local result=""
+format_languages() {
+    local cwd="${1}"
 
-  # Go
-  if [[ -f "${cwd}/go.mod" ]]; then
-    result+="${sky}  ${reset}"
-  fi
+    [[ -f "${cwd}/go.mod" ]] && paint "${sky}" "${icon_go} "
+    [[ -f "${cwd}/Cargo.toml" ]] && paint "${peach}" "${icon_rust} "
+    [[ -f "${cwd}/build.zig" ]] && paint "${peach}" "${icon_zig} "
+    [[ -f "${cwd}/.luarc.json" ]] || compgen -G "${cwd}/*.lua" > /dev/null && paint "${blue}" "${icon_lua} "
+    [[ -f "${cwd}/composer.json" ]] && paint "${lavender}" "${icon_php} "
+    [[ -f "${cwd}/package.json" ]] && paint "${green}" "${icon_node} "
+    [[ -f "${cwd}/pyproject.toml" || -f "${cwd}/setup.py" || -f "${cwd}/requirements.txt" ]] && paint "${yellow}" "${icon_python} "
 
-  # Rust
-  if [[ -f "${cwd}/Cargo.toml" ]]; then
-    result+="${peach} ${reset}"
-  fi
-
-  # Zig
-  if [[ -f "${cwd}/build.zig" ]]; then
-    result+="${peach}  ${reset}"
-  fi
-
-  # Lua (check for lua files or config)
-  if [[ -f "${cwd}/.luarc.json" ]] || ls "${cwd}"/*.lua > /dev/null 2>&1; then
-    result+="${blue}  ${reset}"
-  fi
-
-  # PHP
-  if [[ -f "${cwd}/composer.json" ]]; then
-    result+="${lavender}🐘 ${reset}"
-  fi
-
-  # Node.js
-  if [[ -f "${cwd}/package.json" ]]; then
-    result+="${green}󰎙 ${reset}"
-  fi
-
-  # Python
-  if [[ -f "${cwd}/pyproject.toml" ]] || [[ -f "${cwd}/setup.py" ]] || [[ -f "${cwd}/requirements.txt" ]]; then
-    result+="${yellow} ${reset}"
-  fi
-
-  printf '%s' "${result}"
+    return 0
 }
 
-get_docker_k8s() {
-  local cwd="${1}"
-  local result=""
+has_container_files() {
+    local cwd="${1}" \
+          file
 
-  # Docker
-  if [[ -f "${cwd}/compose.yaml" ]] || [[ -f "${cwd}/docker-compose.yml" ]] || [[ -f "${cwd}/docker-compose.yaml" ]] || [[ -f "${cwd}/Dockerfile" ]]; then
-    local docker_ctx
-    docker_ctx=$(docker context show 2>/dev/null || echo "default")
-    result+="${sky}  ${docker_ctx}${reset} "
-  fi
+    for file in compose.yaml docker-compose.yml docker-compose.yaml Dockerfile; do
+        [[ -f "${cwd}/${file}" ]] && return 0
+    done
 
-  # Kubernetes (only if Docker files present)
-  if [[ -f "${cwd}/Dockerfile" ]] && command -v kubectl > /dev/null 2>&1; then
-    local k8s_ctx k8s_ns
-    k8s_ctx=$(kubectl config current-context 2>/dev/null || true)
-    if [[ -n "${k8s_ctx}" ]]; then
-      k8s_ns=$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null || echo "default")
-      result+="${blue}☸ ${k8s_ctx}${reset}"
-      if [[ -n "${k8s_ns}" && "${k8s_ns}" != "default" ]]; then
-        result+=" ${text}(${k8s_ns})${reset}"
-      fi
-    fi
-  fi
-
-  printf '%s' "${result}"
+    return 1
 }
 
-get_memory() {
-  local mem_pct
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    # macOS: use vm_stat
-    local page_size pages_active pages_wired total_mem used_mem
-    page_size=$(pagesize)
-    pages_active=$(vm_stat | awk '/Pages active/ {gsub(/\./,""); print $3}')
-    pages_wired=$(vm_stat | awk '/Pages wired/ {gsub(/\./,""); print $4}')
+format_containers() {
+    local cwd="${1}" \
+          context \
+          namespace
 
-    total_mem=$(sysctl -n hw.memsize)
-    used_mem=$(( (pages_active + pages_wired) * page_size ))
-    mem_pct=$(( used_mem * 100 / total_mem ))
-  else
-    # Linux: use /proc/meminfo
-    mem_pct=$(awk '/MemTotal/ {total=$2} /MemAvailable/ {avail=$2} END {printf "%.0f", (1-avail/total)*100}' /proc/meminfo 2>/dev/null || echo "0")
-  fi
+    has_container_files "${cwd}" || return 0
 
-  # Only show if above threshold (85%)
-  if [[ ${mem_pct} -ge 85 ]]; then
-    printf '%s' "${yellow}🐏 ${mem_pct}%%${reset}"
-  fi
+    context="$(docker context show 2>/dev/null)" || context="default"
+    paint "${sky}" "${icon_docker} ${context} "
+
+    [[ -f "${cwd}/Dockerfile" ]] && command -v kubectl > /dev/null 2>&1 || return 0
+
+    context="$(kubectl config current-context 2>/dev/null)" || return 0
+    [[ -n "${context}" ]] || return 0
+
+    paint "${blue}" "☸ ${context}"
+
+    namespace="$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null)"
+    [[ -n "${namespace}" && "${namespace}" != "default" ]] && paint "${text}" " (${namespace})"
+
+    return 0
 }
 
-get_time() {
-  printf '%s' "${text}  $(date +%R)${reset}"
+memory_percent() {
+    [[ "$(uname -s)" != "Darwin" ]] && {
+        awk '/MemTotal/ {total=$2} /MemAvailable/ {avail=$2} END {printf "%.0f", (1-avail/total)*100}' /proc/meminfo 2>/dev/null
+
+        return 0
+    }
+
+    vm_stat | awk -v page="$(pagesize)" -v total="$(sysctl -n hw.memsize)" '
+        /Pages active/ {gsub(/\./, ""); used += $3}
+        /Pages wired/  {gsub(/\./, ""); used += $4}
+        END {printf "%d", used * page * 100 / total}'
 }
 
-# --- Build Status Line ---
+format_memory() {
+    local percent="${1}"
 
-os_symbol=$(get_os_symbol)
-user_info=$(get_username)
-dir_info=$(get_directory "${cwd}")
-git_info=$(get_git_info "${cwd}")
-lang_info=$(get_language "${cwd}")
-docker_k8s=$(get_docker_k8s "${cwd}")
-memory_info=$(get_memory)
-time_info=$(get_time)
+    [[ "${percent}" =~ ^[0-9]+$ ]] || return 0
+    [[ "${percent}" -ge "${memory_threshold}" ]] || return 0
 
-# Left side: OS | User | Dir | Lang | Docker/K8s | Git
-left="${os_symbol} ${user_info}  ${dir_info}"
+    paint "${yellow}" "${icon_memory} ${percent}%"
+}
 
-if [[ -n "${lang_info}" ]]; then
-  left+=" ${lang_info}"
-fi
+format_model() {
+    local model="${1}"
 
-if [[ -n "${docker_k8s}" ]]; then
-  left+=" ${docker_k8s}"
-fi
+    [[ -n "${model}" ]] || return 0
 
-if [[ -n "${git_info}" ]]; then
-  left+=" ${git_info}"
-fi
+    paint "${mauve}" "${icon_model} ${model}"
+}
 
-# Right side: Memory | Time
-right=""
-if [[ -n "${memory_info}" ]]; then
-  right+="${memory_info} "
-fi
-right+="${time_info}"
+# Colors the context usage by how close the window is to full.
+format_context() {
+    local percent="${1%%.*}"
 
-# Output with spacing
-printf '%s   %s' "${left}" "${right}"
+    [[ "${percent}" =~ ^[0-9]+$ ]] || return 0
+
+    local color="${green}"
+
+    [[ "${percent}" -ge "${context_warning}" ]] && color="${yellow}"
+    [[ "${percent}" -ge "${context_high}" ]] && color="${peach}"
+    [[ "${percent}" -ge "${context_critical}" ]] && color="${red}"
+
+    paint "${color}" "${icon_context} ${percent}%"
+}
+
+format_cost() {
+    local cost="${1}"
+
+    [[ -n "${cost}" ]] || return 0
+
+    paint "${peach}" "$(LC_NUMERIC=C printf '$%.2f' "${cost}")"
+}
+
+format_time() {
+    paint "${text}" "${icon_clock} $(date +%R)"
+}
+
+# Counts terminal cells, ignoring colors. Every glyph used here is one cell wide.
+visible_width() {
+    printf '%s' "${1}" \
+        | LC_ALL=C sed $'s/\033\\[[0-9;]*m//g' \
+        | LC_ALL=C tr -d '\200-\277' \
+        | wc -c \
+        | tr -d ' '
+}
+
+# Pads between both sides so the right one ends at the terminal edge.
+align_line() {
+    local left="${1}" \
+          right="${2}" \
+          columns="${3}" \
+          gap="${min_gap}"
+
+    [[ "${columns}" =~ ^[0-9]+$ ]] && {
+        gap=$((columns - right_margin - $(visible_width "${left}") - $(visible_width "${right}")))
+        [[ "${gap}" -lt "${min_gap}" ]] && gap="${min_gap}"
+    }
+
+    printf '%s%*s%s' "${left}" "${gap}" "" "${right}"
+}
+
+# Joins the non-empty arguments with single spaces.
+join_segments() {
+    local segment \
+          line=""
+
+    for segment in "$@"; do
+        [[ -n "${segment}" ]] && line="${line:+${line} }${segment}"
+    done
+
+    printf '%s' "${line}"
+}
+
+build_left() {
+    join_segments \
+        "$(format_os)" \
+        "$(format_user)" \
+        " $(format_directory "${session_cwd}" "${HOME}")" \
+        "$(format_languages "${session_cwd}")" \
+        "$(format_containers "${session_cwd}")" \
+        "$(format_git "${session_cwd}")"
+}
+
+build_right() {
+    join_segments \
+        "$(format_model "${session_model}")" \
+        "$(format_context "${session_context}")" \
+        "$(format_cost "${session_cost}")" \
+        "$(format_memory "$(memory_percent)")" \
+        "$(format_time)"
+}
+
+main() {
+    parse_session "$(cat)"
+
+    align_line "$(build_left)" "$(build_right)" "${COLUMNS:-}"
+}
+
+[[ "${BASH_SOURCE[0]}" != "${0}" ]] || main "$@"

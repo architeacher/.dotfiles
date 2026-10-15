@@ -75,6 +75,10 @@ dependency-graph.svg
 
 .idea/
 .vscode/
+*.iml
+*.swp
+*.swo
+*~
 
 ########
 # Git #

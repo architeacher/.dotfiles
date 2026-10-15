@@ -2,26 +2,30 @@
 
 set -eou pipefail
 
-readonly LOG_LEVEL_DEBUG=7
-readonly LOG_LEVEL_INFO=6
-readonly LOG_LEVEL_NOTICE=5
-readonly LOG_LEVEL_WARNING=4
-readonly LOG_LEVEL_ERROR=3
-readonly LOG_LEVEL_CRITICAL=2
-readonly LOG_LEVEL_ALERT=1
-readonly LOG_LEVEL_EMERGENCY=0
+# Log levels (following complete syslog standard - higher number = less severe)
+# These are readonly to prevent malicious override after initialization
+readonly LOG_LEVEL_DEBUG=7      # Debug information (least severe)
+readonly LOG_LEVEL_INFO=6       # Informational messages
+readonly LOG_LEVEL_NOTICE=5     # Normal but significant conditions
+readonly LOG_LEVEL_WARN=4       # Warning conditions
+readonly LOG_LEVEL_ERROR=3      # Error conditions
+readonly LOG_LEVEL_CRITICAL=2   # Critical conditions
+readonly LOG_LEVEL_ALERT=1      # Action must be taken immediately
+readonly LOG_LEVEL_EMERGENCY=0  # System is unusable (most severe)
 
 readonly LOG_PREFIX="==>"
+readonly LOG_LEVEL_TAGS=(emergency alert critical error warning notice info debug)
 
 _log_level="${LOG_LEVEL_INFO}"
 
-# string formatters, True if go_file descriptor FD is open and refers to a terminal.
+# string formatters, True if a go_file descriptor FD is open and refers to a terminal.
 tty_escape() { :; }
 
 [[ -t 1 ]] && tty_escape() { printf "\x1b[%sm" "${1}"; }
 
 tty_4bit_mk() { tty_escape "${1}"; }
 tty_8bit_mk() { tty_escape "38;5;${1}"; }
+tty_24bit_mkbold() { tty_escape "38;2;${1}"; }
 tty_4bit_mkbold() { tty_4bit_mk "${1};1"; }
 tty_8bit_mkbold() { tty_8bit_mk "${1};1"; }
 
@@ -30,29 +34,101 @@ tty_bold="$(tty_4bit_mkbold 39)"
 tty_underline="$(tty_escape "4;39")"
 tty_reset="$(tty_escape 0)"
 
-# shellcheck disable=SC2034
-tty_blue="$(tty_4bit_mk 34)"
-tty_corn="$(tty_8bit_mk 178)"
-tty_cyan="$(tty_8bit_mk 45)"
-tty_green="$(tty_8bit_mk 35)"
-tty_imperial="$(tty_4bit_mk 91)"
-# shellcheck disable=SC2034
-tty_lime="$(tty_8bit_mk 113)"
-tty_magenta="$(tty_8bit_mk 170)"
-# shellcheck disable=SC2034
-tty_move="$(tty_4bit_mk 35)"
-tty_olive="$(tty_8bit_mk 64)"
-# shellcheck disable=SC2034
-tty_orange="$(tty_8bit_mk 208)"
-tty_pink="$(tty_8bit_mk 198)"
-tty_red="$(tty_8bit_mkbold 196)"
-# shellcheck disable=SC2034
-tty_teal="$(tty_4bit_mk 36)"
-# shellcheck disable=SC2034
-tty_yellow="$(tty_8bit_mk 227)"
+# unified roles, shared by all palettes. index = level (0 emergency ... 7 debug)
+readonly LOG_PREFIX_COLORS=(red pink purple red yellow orange green lime)
+readonly LOG_TAG_COLORS=(red pink purple red yellow yellow cyan olive)
+readonly LOG_MSG_COLORS=(text text text text text text blue muted)
 
-readonly LOG_LEVEL_TAGS=(emergency alert critical error warning notice info debug)
-readonly LOG_LEVEL_COLORS=("${tty_red}" "${tty_pink}" "${tty_imperial}" "${tty_magenta}" "${tty_corn}" "${tty_olive}" "${tty_green}" "${tty_cyan}")
+# shellcheck disable=SC2034
+{
+    RGB_default_aqua="0;255;255"
+    RGB_default_green="64;160;43"
+    RGB_default_lime="138;255;14"
+    RGB_default_magenta="136;57;239"
+    RGB_default_mauve="224;176;255"
+    RGB_default_fuchsia="255;0;128"
+    RGB_default_olive="128;128;0"
+    RGB_default_orange="254;100;11"
+    RGB_default_pink="255;121;198"
+    RGB_default_purple="189;147;249"
+    RGB_default_red="210;15;57"
+    RGB_default_yellow="241;250;14"
+
+    # color maps: RGB_<palette>_<role>="R;G;B"
+    # roles: red pink purple yellow cyan blue text muted
+    RGB_rose_pine_moon_red="235;111;146"      # love
+    RGB_rose_pine_moon_pink="234;154;151"     # rose
+    RGB_rose_pine_moon_purple="196;167;231"   # iris
+    RGB_rose_pine_moon_yellow="223;142;29"
+    RGB_rose_pine_moon_cyan="156;207;216"     # foam
+    RGB_rose_pine_moon_blue="62;143;176"      # pine
+    RGB_rose_pine_moon_text="224;222;244"
+    RGB_rose_pine_moon_muted="110;106;134"
+
+    RGB_catppuccin_macchiato_red="237;135;150"
+    RGB_catppuccin_macchiato_pink="238;153;160"    # maroon
+    RGB_catppuccin_macchiato_purple="198;160;246"  # mauve
+    RGB_catppuccin_macchiato_yellow="234;157;52"   # gold
+    RGB_catppuccin_macchiato_cyan="139;213;202"    # teal
+    RGB_catppuccin_macchiato_blue="166;218;149"    # green
+    RGB_catppuccin_macchiato_text="202;211;245"
+    RGB_catppuccin_macchiato_muted="128;135;162"   # overlay1
+}
+
+# usage: tty_rgb "R;G;B" [bold_flag]
+# truecolor if supported, else nearest 256-color
+tty_rgb() {
+    local rgb="${1:?rgb required}" \
+          bold="${2:-}" \
+          r \
+          g \
+          b
+
+    [[ "${COLORTERM:-}" == "truecolor" || "${COLORTERM:-}" == "24bit" ]] && {
+        tty_escape "${bold:+${bold};}38;2;${rgb}"
+
+        return
+    }
+
+    IFS=';' read -r r g b <<< "${rgb}"
+    tty_escape "${bold:+${bold};}38;5;$(( 16 + 36 * (r * 5 / 255) + 6 * (g * 5 / 255) + (b * 5 / 255) ))"
+}
+
+LOG_PALETTE_NAME=""
+LOG_PREFIX_RGB=()
+LOG_TAG_RGB=()
+LOG_MSG_RGB=()
+
+# usage: color_rgb <name>  (uses the active palette)
+color_rgb() {
+    local role="${1:?color required}" \
+          value \
+          var \
+          fallback
+
+    var="RGB_${LOG_PALETTE_NAME}_${role}"
+    fallback="RGB_default_${role}"
+    value="${!var:-}"
+    value="${value:-${!fallback:-}}"
+
+    [[ -n "${value}" ]] || abort "Unknown color: ${role}"
+    printf '%s' "${value}"
+}
+
+log_set_palette() {
+    local name \
+          index
+
+    name="$(tr '[:upper:]-' '[:lower:]_' <<< "${1:?palette required}")"
+    compgen -v "RGB_${name}_" > /dev/null || abort "Unknown palette: ${1}"
+    LOG_PALETTE_NAME="${name}"
+
+    for (( index = 0; index < ${#LOG_TAG_COLORS[@]}; index++ )); do
+        LOG_PREFIX_RGB[index]="$(color_rgb "${LOG_PREFIX_COLORS[index]}")"
+        LOG_TAG_RGB[index]="$(color_rgb "${LOG_TAG_COLORS[index]}")"
+        LOG_MSG_RGB[index]="$(color_rgb "${LOG_MSG_COLORS[index]}")"
+    done
+}
 
 log_set_level() { _log_level="${1}"; }
 
@@ -79,19 +155,27 @@ to_upper_case() {
 log() {
     local log_level="${1}" \
           message="" \
-          tty_color="${tty_bold}" \
-          tag=""
+          tag="" \
+          prefix_color="" \
+          msg_color="" \
+          tag_color="${tty_bold}"
 
     log_priority "${log_level}" || return 0
 
-    [[ "${log_level}" =~ ^[0-9]+$ ]] && (( log_level < ${#LOG_LEVEL_COLORS[@]} )) \
-        && { tty_color="${LOG_LEVEL_COLORS[${log_level}]}"; tag="${LOG_LEVEL_TAGS[${log_level}]}"; }
+    [[ "${log_level}" =~ ^[0-9]+$ ]] && (( log_level < ${#LOG_LEVEL_TAGS[@]} )) && {
+        tag="${LOG_LEVEL_TAGS[${log_level}]}"
+        prefix_color="$(tty_rgb "${LOG_PREFIX_RGB[${log_level}]}")"
+        tag_color="$(tty_rgb "${LOG_TAG_RGB[${log_level}]}" 1)"
+        msg_color="$(tty_rgb "${LOG_MSG_RGB[${log_level}]}")"
+    }
 
     shift
     message="${*}"
 
     [[ "${tag}" != "" ]] && {
-        display_message "${tty_color}" "${LOG_PREFIX}" "[$(to_upper_case "${tag}")]:" "${message}" "${tty_reset}"
+        display_message "${prefix_color}${LOG_PREFIX}${tty_reset} " \
+            "${tag_color}[$(to_upper_case "${tag}")]:${tty_reset}" \
+            "${msg_color}${message}${tty_reset}"
 
         return
     }
@@ -112,7 +196,7 @@ log_notice() {
 }
 
 log_warning() {
-    log "${LOG_LEVEL_WARNING}" "${@}"
+    log "${LOG_LEVEL_WARN}" "${@}"
 }
 
 log_error() {
@@ -175,3 +259,5 @@ parse_log_level() {
 
     echo "${log_level}"
 }
+
+log_set_palette "${LOG_PALETTE:-rose_pine_moon}"

@@ -1,0 +1,13 @@
+creation_rules:
+    - path_regex: ^private/(\.config\.dist/(aws/[^/]+|netrc)|\.ssh\.dist/conf\.d/[^/]+)$
+      shamir_threshold: 2
+      key_groups:
+          - age:
+               # Plain Age Key
+              - age196tsszqh8nn40p9dg59nfdh2jhzm0h5rapnqfpqwlrtx5r78qu0qmznsya
+              # Yubi Key
+              - age1yubikey1qgjz6trwwg57vxtm4yenzk50wdnnxm52e27ct5heedy8smdrrmc4ukwew4m
+            pgp:
+              - "0FA488F452F15C569ACD447A68D8E7C25FF5AD6E"
+          - age:
+              - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXtRErehC5vy8uUjBvvfWzjV5cFfTO0tKwMNKV0Pv6x architeacher.sops"

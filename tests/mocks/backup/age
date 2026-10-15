@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Test double for age: "encrypts" and "decrypts" by copying.
+# Understands -p, -d, -o FILE, -r RECIPIENT, -i IDENTITY. Input is a file or stdin.
+#   AGE_FAIL=1  fails like a cancelled passphrase prompt.
+#   AGE_BAD=1   decrypts to garbage, like the wrong device.
+set -euo pipefail
+
+[[ -z "${AGE_FAIL:-}" ]] || { echo "age: cancelled" >&2; exit 1; }
+
+out=""
+decrypt=""
+while [[ "$#" -gt 0 && "${1}" == -* ]]; do
+    case "${1}" in
+        -o) out="${2}"; shift 2 ;;
+        -r | -i) shift 2 ;;
+        -d) decrypt="1"; shift ;;
+        *) shift ;;
+    esac
+done
+input="${1:-/dev/stdin}"
+
+[[ -n "${decrypt}" && -n "${AGE_BAD:-}" ]] && { echo "garbage"; exit 0; }
+[[ -n "${out}" ]] && { cat "${input}" > "${out}"; exit 0; }
+cat "${input}"

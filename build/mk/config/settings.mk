@@ -12,7 +12,7 @@ ifneq (true, ${ECHO_RECIPES})
 .SILENT: ;
 endif
 
-SHELL := /bin/bash
+SHELL := /usr/bin/env bash
 
 # An empty, phony .FORCE target, that will cause external targets to always be built, so that the
 # Makefile there will handle dependencies.

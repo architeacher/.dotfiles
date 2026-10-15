@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Test double for gpg: only the listing calls used by `verify`.
+#   GPG_STUB=1  lists a secret key whose secret part is missing (sec#).
+case "$*" in
+    *--list-secret-keys*)
+        [[ -n "${GPG_STUB:-}" ]] && { printf 'sec#  ed25519/ABCD 2024-01-01 [SC]\n'; exit 0; }
+        printf 'sec   ed25519/ABCD 2024-01-01 [SC]\nssb   cv25519/EF01 2024-01-01 [E]\n'
+        ;;
+    *--list-keys*) printf 'pub   ed25519/ABCD 2024-01-01 [SC]\n' ;;
+    *) echo "gpg test double: unsupported: $*" >&2; exit 1 ;;
+esac
