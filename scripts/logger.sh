@@ -35,44 +35,57 @@ tty_underline="$(tty_escape "4;39")"
 tty_reset="$(tty_escape 0)"
 
 # unified roles, shared by all palettes. index = level (0 emergency ... 7 debug)
-readonly LOG_PREFIX_COLORS=(red pink purple red yellow orange green lime)
-readonly LOG_TAG_COLORS=(red pink purple red yellow yellow cyan olive)
-readonly LOG_MSG_COLORS=(text text text text text text blue muted)
+readonly LOG_PREFIX_COLORS=(magenta pink violet mauve orange olive green sapphire)
+readonly LOG_TAG_COLORS=(maroon red purple fuchsia yellow lime cyan sky)
+readonly LOG_MSG_COLORS=(text text cornflower lavender gold muted teal blue)
 
 # shellcheck disable=SC2034
 {
     RGB_default_aqua="0;255;255"
+    RGB_default_blue="82;151;248"
+    RGB_default_cornflower="128;152;228"
+    RGB_default_cyan="156;207;216"
+    RGB_default_fuchsia="255;0;255"
+    RGB_default_gold="238;195;130"
     RGB_default_green="64;160;43"
+    RGB_default_lavender="230;230;250"
+#    RGB_default_lavender="219;118;145"
     RGB_default_lime="138;255;14"
-    RGB_default_magenta="136;57;239"
-    RGB_default_mauve="224;176;255"
-    RGB_default_fuchsia="255;0;128"
+    RGB_default_magenta="255;0;128"
+    RGB_default_maroon="128;0;0"
+    RGB_default_mauve="224;175;255"
+    RGB_default_muted="110;106;134"
     RGB_default_olive="128;128;0"
     RGB_default_orange="254;100;11"
     RGB_default_pink="255;121;198"
-    RGB_default_purple="189;147;249"
+    RGB_default_purple="157;0;255"
     RGB_default_red="210;15;57"
+    RGB_default_sky="120;203;250"
+    RGB_default_teal="62;143;176"
+    RGB_default_text="202;211;245"
+    RGB_default_sapphire="59;134;193"
     RGB_default_yellow="241;250;14"
+    RGB_default_violet="189;147;249"
 
     # color maps: RGB_<palette>_<role>="R;G;B"
     # roles: red pink purple yellow cyan blue text muted
-    RGB_rose_pine_moon_red="235;111;146"      # love
+    RGB_rose_pine_moon_blue="62;143;176"      # pine
+    RGB_rose_pine_moon_cyan="156;207;216"     # foam
+    RGB_rose_pine_moon_muted="110;106;134"
     RGB_rose_pine_moon_pink="234;154;151"     # rose
     RGB_rose_pine_moon_purple="196;167;231"   # iris
-    RGB_rose_pine_moon_yellow="223;142;29"
-    RGB_rose_pine_moon_cyan="156;207;216"     # foam
-    RGB_rose_pine_moon_blue="62;143;176"      # pine
+    RGB_rose_pine_moon_red="235;111;146"      # love
     RGB_rose_pine_moon_text="224;222;244"
-    RGB_rose_pine_moon_muted="110;106;134"
+    RGB_rose_pine_moon_yellow="223;142;29"
 
-    RGB_catppuccin_macchiato_red="237;135;150"
+    RGB_catppuccin_macchiato_blue="166;218;149"    # green
+    RGB_catppuccin_macchiato_cyan="139;213;202"    # teal
+    RGB_catppuccin_macchiato_muted="128;135;162"   # overlay1
     RGB_catppuccin_macchiato_pink="238;153;160"    # maroon
     RGB_catppuccin_macchiato_purple="198;160;246"  # mauve
-    RGB_catppuccin_macchiato_yellow="234;157;52"   # gold
-    RGB_catppuccin_macchiato_cyan="139;213;202"    # teal
-    RGB_catppuccin_macchiato_blue="166;218;149"    # green
+    RGB_catppuccin_macchiato_red="237;135;150"
     RGB_catppuccin_macchiato_text="202;211;245"
-    RGB_catppuccin_macchiato_muted="128;135;162"   # overlay1
+    RGB_catppuccin_macchiato_yellow="234;157;52"   # gold
 }
 
 # usage: tty_rgb "R;G;B" [bold_flag]

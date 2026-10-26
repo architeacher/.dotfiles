@@ -63,6 +63,8 @@ brew "dust"                                 # 💿 A more intuitive version of d
 brew "eza"                                  # 📋 A modern alternative to ls.
 brew "fd"                                   # 🔎 A simple, fast and user-friendly alternative to 'find'.
 brew "fzf"                                  # 🌸 A command-line fuzzy finder
+brew "gh"                                   # GitHub command-line tool
+brew "glab"                                 # Open-source GitLab command-line tool
 brew "glow"                                 # ✨ Render markdown on the CLI.
 brew "hyperfine"                            # 🏇 A command-line benchmarking tool, written in Rust.
 brew "jj"                                   # A powerful version control system.
@@ -84,7 +86,6 @@ brew "starship"                             # 🚀 Starship cross-shell prompt.
 brew "stow"                                 # 🔗 A symlink farm manager.
 brew "superfile"                            # Modern and pretty fancy file manager for the terminal.
 brew "telnet"
-brew "tldr"                                 # 📰 A simplified and community-driven man pages.
 brew "tmux"                                 # 🫖 mux.
 brew "tpm"                                  # 🧋 A plugin manager for tmux.
 brew "trash-cli"                            # 🗑️ A command line interface to the trashcan.
@@ -153,7 +154,6 @@ cask "font-roboto"
 cask "font-source-code-pro"
 
 # Web Browsers
-cask "arc"
 cask "brave-browser"
 cask "thebrowsercompany-dia"
 cask "firefox"

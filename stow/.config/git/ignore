@@ -94,3 +94,4 @@ dependency-graph.svg
 AGENTS.md
 CLAUDE.md
 **/.claude/
+.jiraskillrc
