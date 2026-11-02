@@ -55,6 +55,9 @@
 - [SHOULD] Check if docs need updating based on staged changes
 - [SHOULD] Add body ONLY for complex changes
 
+## Worktrees
+- [MUST] In a worktree: commit there; never push a `worktree-*` branch. I squash-merge the worktree branch into my branch and push it myself.
+
 ## Golang
 - [MUST] Follow Effective Go practices
 - [MUST] Return errors, don't panic (except truly unrecoverable)

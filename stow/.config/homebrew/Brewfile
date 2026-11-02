@@ -110,10 +110,18 @@ brew "trivy"                                # 🕵🏻‍♂️ A security scann
 brew "ykman"                                # Tool for managing your YubiKey configuration
 
 # Terminal Fun
+brew "cmatrix"
 brew "cowsay"
 brew "fortune"
 brew "lolcat"
 brew "fastfetch"
+
+# Zsh
+brew "zsh-autocomplete"
+brew "zsh-autosuggestions"
+brew "zsh-completions"
+brew "zsh-fast-syntax-highlighting"
+brew "zsh-history-substring-search"
 
 # Apps
 cask "caffeine"                             # ☕️ Prevents the system from going to sleep.

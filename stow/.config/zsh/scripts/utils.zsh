@@ -1,27 +1,25 @@
 #!/usr/bin/env zsh
 
+# Each init script is cached by source_cached (see cache.zsh) and rebuilt
+# only when the tool binary changes. Run `clear_init_cache` to force it.
+
 # +-------+
 # | Atuin |
 # +-------+
 
-# shellcheck disable=SC1090
-# shellcheck disable=SC2154
-(( $+commands[atuin] )) && source <(atuin init zsh)
+source_cached atuin atuin init zsh
 
 # +----------+
 # | Carapace |
 # +----------+
 
-command -v carapace > /dev/null 2>&1 && {
-    source <(carapace _carapace)
-}
+source_cached carapace carapace _carapace
 
 # +--------+
 # | Direnv |
 # +--------+
 
-# shellcheck disable=SC1090
-hash direnv > /dev/null 2>&1 && source <(direnv hook zsh)
+source_cached direnv direnv hook zsh
 
 # +-----+
 # | FZF |
@@ -29,36 +27,22 @@ hash direnv > /dev/null 2>&1 && source <(direnv hook zsh)
 
 # https://github.com/junegunn/fzf
 # FZF - Set up key bindings and fuzzy completion
-# shellcheck disable=SC1090
-type -p fzf > /dev/null 2>&1 && source <(fzf --zsh)
+source_cached fzf fzf --zsh
 
 # +---------+
 # | Kubectl |
 # +---------+
 
-# shellcheck disable=SC1090
-whereis kubectl | rg -q '/' 2>&1 && source <(kubectl completion zsh)
-
-# +--------+
-# | Orbctl |
-# +--------+
-
-which orbctl > /dev/null 2>&1 && {
-    source <(orbctl completion zsh)
-    compdef _orb orbctl
-    compdef _orb orb
-}
+source_cached kubectl kubectl completion zsh
 
 # +----------+
 # | Starship |
 # +----------+
 
-# shellcheck disable=SC1090
-which starship > /dev/null 2>&1 && source <(starship init zsh)
+source_cached starship starship init zsh --print-full-init
 
 # +--------+
 # | Zoxide |
 # +--------+
 
-# shellcheck disable=SC1090
-which zoxide > /dev/null 2>&1 && source <(zoxide init --cmd cd zsh)
+source_cached zoxide zoxide init --cmd cd zsh
