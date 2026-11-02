@@ -1,12 +1,11 @@
 #!/usr/bin/env zsh
 
-brew_prefix="$(brew --prefix)"
+brew_prefix="${HOMEBREW_PREFIX:-$(brew --prefix)}"
 
 plugins=(
     "${brew_prefix}/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
     "${brew_prefix}/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
-    # Auto-completion should come after the syntax highlighting.
-    "${brew_prefix}/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+    # History substring search should come after the syntax highlighting.
     "${brew_prefix}/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
     "${ZDOTDIR}/fzf/fzf.zsh"
     "${ZDOTDIR}/fzf/fzf-git.zsh"
