@@ -1,12 +1,18 @@
 {
+    "awsAuthRefresh": "aws sso login --profile Claude",
+    "skillListingBudgetFraction": 0.03,
     "env": {
         "CLAUDE_CODE_USE_ANTHROPIC_AWS": "1",
         "AWS_PROFILE": "Claude",
-        "ANTHROPIC_AWS_WORKSPACE_ID": "wrkspc_XXXXXXXXXX"
+        "ENABLE_TOOL_SEARCH": "true",
+        "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "true",
+        "CLAUDE_CODE_ENABLE_TELEMETRY": "true",
+        "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+        "OTEL_LOGS_EXPORTER": "otlp",
+        "OTEL_METRICS_EXPORTER": "otlp"
     },
-    "awsAuthRefresh": "aws sso login --profile Claude",
+    "model": "opus[1m]",
     "permissions": {
-        "defaultMode": "auto",
         "allow": [
             "Bash(buf breaking *)",
             "Bash(buf build *)",
@@ -63,6 +69,7 @@
             "WebFetch(domain:doc.rust-lang.org)",
             "WebSearch",
             "mcp__ide__getDiagnostics",
+            "mcp__pencil",
             "mcp__plugin_playwright_playwright__browser_click",
             "mcp__plugin_playwright_playwright__browser_close",
             "mcp__plugin_playwright_playwright__browser_console_messages",
@@ -78,6 +85,33 @@
             "mcp__plugin_playwright_playwright__browser_take_screenshot",
             "mcp__plugin_playwright_playwright__browser_type",
             "mcp__plugin_playwright_playwright__browser_wait_for"
+        ],
+        "deny": [
+            "Bash(git push --force *)",
+            "Bash(git push * --force)",
+            "Bash(git push * --force *)",
+            "Bash(git push -f *)",
+            "Bash(git push * -f)",
+            "Bash(git push * -f *)",
+            "Bash(git push * +*)",
+            "Edit(**/.git/config)",
+            "Edit(**/.git/hooks/**)",
+            "mcp__plugin_playwright_playwright__browser_run_code_unsafe",
+            "mcp__plugin_playwright_playwright__browser_file_upload",
+            "Read(~/.aws/**)",
+            "Read(~/.cargo/credentials*)",
+            "Read(~/.config/gh/**)",
+            "Read(~/.config/sops/**)",
+            "Read(~/.docker/config.json)",
+            "Read(**/.env.local)",
+            "Read(**/.env.*.local)",
+            "Read(~/.git-credentials)",
+            "Read(~/.gnupg/**)",
+            "Read(~/.kube/**)",
+            "Read(~/.local/share/gnupg/**)",
+            "Read(~/.netrc)",
+            "Read(~/.npmrc)",
+            "Read(~/.ssh/**)"
         ],
         "ask": [
             "Bash(cargo * --config*)",
@@ -132,44 +166,125 @@
             "mcp__plugin_playwright_playwright__browser_evaluate",
             "mcp__plugin_playwright_playwright__browser_navigate"
         ],
-        "deny": [
-            "Bash(git push --force *)",
-            "Bash(git push * --force)",
-            "Bash(git push * --force *)",
-            "Bash(git push -f *)",
-            "Bash(git push * -f)",
-            "Bash(git push * -f *)",
-            "Bash(git push * +*)",
-            "Edit(**/.git/config)",
-            "Edit(**/.git/hooks/**)",
-            "mcp__plugin_playwright_playwright__browser_run_code_unsafe",
-            "mcp__plugin_playwright_playwright__browser_file_upload",
-            "Read(~/.aws/**)",
-            "Read(~/.cargo/credentials*)",
-            "Read(~/.config/gh/**)",
-            "Read(~/.config/sops/**)",
-            "Read(~/.docker/config.json)",
-            "Read(**/.env.local)",
-            "Read(**/.env.*.local)",
-            "Read(~/.git-credentials)",
-            "Read(~/.gnupg/**)",
-            "Read(~/.kube/**)",
-            "Read(~/.local/share/gnupg/**)",
-            "Read(~/.netrc)",
-            "Read(~/.npmrc)",
-            "Read(~/.ssh/**)"
+        "defaultMode": "auto"
+    },
+    "hooks": {
+        "Notification": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "[[ \"${CLAUDE_QUIET}\" = \"true\" ]] && exit 0; say \"Claude needs your attention on $(basename \"${CLAUDE_PROJECT_DIR}\") project\" </dev/null;",
+                        "async": true
+                    },
+                    {
+                        "type": "command",
+                        "command": "[[ \"${CLAUDE_QUIET}\" = \"true\" ]] && exit 0; osascript -e \"display notification \\\"Attention is needed.\\\" with title\\\"Claude\\\" subtitle \\\"$(basename \"${CLAUDE_PROJECT_DIR}\") Project\\\" sound name \\\"codex-alert-codex-notification\\\"\"",
+                        "async": true
+                    },
+                    {
+                        "type": "command",
+                        "command": "[[ \"${CLAUDE_QUIET}\" = \"true\" ]] && exit 0; afplay \"${XDG_CONFIG_HOME}/claude/hooks/mario-fart-sound-effect.mp3\"",
+                        "async": true
+                    }
+                ]
+            }
+        ],
+        "PermissionRequest": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "[[ \"${CLAUDE_QUIET}\" = \"true\" ]] && exit 0; say \"Claude needs your permission on $(basename \"${CLAUDE_PROJECT_DIR}\") project\" </dev/null;",
+                        "async": true
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "[[ \"${CLAUDE_QUIET}\" = \"true\" ]] && exit 0; voices=(\"Bells\" \"Boing\" \"Cellos\" \"Good\" \"Organ\" \"Trinoids\" \"Zarvox\"); say -v \"${voices[RANDOM % ${#voices[@]}]}\" \"Mission accomplished on $(basename \"${CLAUDE_PROJECT_DIR}\") project\" </dev/null;",
+                        "async": true
+                    },
+                    {
+                        "type": "command",
+                        "command": "[[ \"${CLAUDE_QUIET}\" = \"true\" ]] && exit 0; afplay \"${XDG_CONFIG_HOME}/claude/hooks/super-mario-stage-win-sound-effect.mp3\";"
+                    },
+                    {
+                        "type": "command",
+                        "command": "[[ \"${CLAUDE_QUIET}\" = \"true\" ]] && exit 0; open \"raycast://confetti\";",
+                        "async": true
+                    }
+                ]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "afplay \"${XDG_CONFIG_HOME}/claude/hooks/super-mario-bros-underground-sound effect.mp3\"",
+                        "async": true
+                    }
+                ]
+            }
         ]
     },
+    "statusLine": {
+        "type": "command",
+        "command": "${XDG_CONFIG_HOME}/claude/status_line.sh"
+    },
+    "enabledPlugins": {
+        "code-review@claude-plugins-official": true,
+        "playwright@claude-plugins-official": true,
+        "explanatory-output-style@claude-plugins-official": true,
+        "learning-output-style@claude-plugins-official": true,
+        "gopls-lsp@claude-plugins-official": true,
+        "rust-analyzer-lsp@claude-plugins-official": true,
+        "security-guidance@claude-plugins-official": true,
+        "frontend-design@claude-plugins-official": true,
+        "code-simplifier@claude-plugins-official": true,
+        "claude-jira-skill@anthropic-plugin-directory": true,
+        "i-have-adhd@i-have-adhd": true,
+        "caveman@caveman": true,
+        "ponytail@ponytail": true
+    },
+    "extraKnownMarketplaces": {
+        "i-have-adhd": {
+            "source": {
+                "source": "github",
+                "repo": "ayghri/i-have-adhd",
+                "ref": "v0.4.1"
+            },
+            "autoUpdate": false
+        },
+        "caveman": {
+            "source": {
+                "source": "github",
+                "repo": "JuliusBrussee/caveman",
+                "ref": "v4.0.1"
+            },
+            "autoUpdate": false
+        },
+        "ponytail": {
+            "source": {
+                "source": "github",
+                "repo": "DietrichGebert/ponytail",
+                "ref": "v5.2.3"
+            },
+            "autoUpdate": false
+        }
+    },
+    "outputStyle": "Learning",
     "sandbox": {
         "enabled": true,
         "failIfUnavailable": true,
         "allowUnsandboxedCommands": false,
-        "excludedCommands": [
-            "docker compose exec *",
-            "git fetch *",
-            "git pull *",
-            "git push *"
-        ],
         "network": {
             "allowedDomains": [
                 "buf.build",
@@ -186,109 +301,73 @@
         },
         "credentials": {
             "files": [
-                { "path": "~/.aws", "mode": "deny" },
-                { "path": "~/.cargo/credentials.toml", "mode": "deny" },
-                { "path": "~/.config/gh", "mode": "deny" },
-                { "path": "~/.config/sops", "mode": "deny" },
-                { "path": "~/.docker/config.json", "mode": "deny" },
-                { "path": "~/.git-credentials", "mode": "deny" },
-                { "path": "~/.gnupg", "mode": "deny" },
-                { "path": "~/.kube", "mode": "deny" },
-                { "path": "~/.local/share/gnupg", "mode": "deny" },
-                { "path": "~/.netrc", "mode": "deny" },
-                { "path": "~/.npmrc", "mode": "deny" },
-                { "path": "~/.ssh", "mode": "deny" }
+                {
+                    "path": "~/.aws",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.cargo/credentials.toml",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.config/gh",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.config/sops",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.docker/config.json",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.git-credentials",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.gnupg",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.kube",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.local/share/gnupg",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.netrc",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.npmrc",
+                    "mode": "deny"
+                },
+                {
+                    "path": "~/.ssh",
+                    "mode": "deny"
+                }
             ]
-        }
-    },
-    "hooks": {
-        "Stop": [
-            {
-                "matcher": "",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "voices=(\"Bells\" \"Bubbles\" \"Cellos\" \"Good\" \"Tarek\" \"Zarvox\"); say -v \"${voices[RANDOM % ${#voices[@]}]}\" \"Mission Accomplished\";"
-                    },
-                    {
-                        "type": "command",
-                        "command": "afplay \"${XDG_CONFIG_HOME}/claude/hooks/super-mario-stage-win-sound-effect.mp3\";"
-                    },
-                    {
-                        "type": "command",
-                        "command": "open \"raycast://confetti\";"
-                    }
-                ]
-            }
-        ],
-        "UserPromptSubmit": [
-            {
-                "matcher": "",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "afplay \"${XDG_CONFIG_HOME}/claude/hooks/super-mario-bros-underground-sound effect.mp3\""
-                    }
-                ]
-            }
-        ],
-        "SubagentStop": [
-            {
-                "matcher": "",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "osascript -e \"display notification \\\"The AI agent is waiting for an input\\\"\""
-                    },
-                    {
-                        "type": "command",
-                        "command": "afplay \"${XDG_CONFIG_HOME}/claude/hooks/mario-fart-sound-effect.mp3\""
-                    }
-                ]
-            }
-        ],
-        "PreToolUse": [
-            {
-                "matcher": "Bash",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "\"${HOME}/.local/share/caveman-blocks/bin/caveman-blocks\" hook --harness claude",
-                        "timeout": 5
-                    }
-                ]
-            }
+        },
+        "enableWeakerNetworkIsolation": true,
+        "excludedCommands": [
+            "docker compose exec *",
+            "git fetch *",
+            "git pull *",
+            "git push *"
         ]
     },
-    "statusLine": {
-        "type": "command",
-        "command": "${XDG_CONFIG_HOME}/claude/status_line.sh"
-    },
-    "enabledPlugins": {
-        "code-review@claude-plugins-official": true,
-        "context7@claude-plugins-official": true,
-        "playwright@claude-plugins-official": true,
-        "explanatory-output-style@claude-plugins-official": true,
-        "learning-output-style@claude-plugins-official": true,
-        "gopls-lsp@claude-plugins-official": true,
-        "rust-analyzer-lsp@claude-plugins-official": true,
-        "security-guidance@claude-plugins-official": true,
-        "frontend-design@claude-plugins-official": true,
-        "code-simplifier@claude-plugins-official": true,
-        "claude-jira-skill@anthropic-plugin-directory": true,
-        "i-have-adhd@i-have-adhd": true
-    },
-    "extraKnownMarketplaces": {
-        "i-have-adhd": {
-            "source": {
-                "source": "github",
-                "repo": "ayghri/i-have-adhd",
-                "ref": "v0.4.1"
-            },
-            "autoUpdate": false
-        }
-    },
-    "outputStyle": "Learning",
+    "editorMode": "vim",
+    "effortLevel": "low",
+    "showThinkingSummaries": true,
+    "skipAutoPermissionPrompt": true,
     "spinnerTipsEnabled": true,
-    "theme": "dark"
+    "theme": "dark",
+    "tui": "fullscreen",
+    "voice": {
+        "enabled": true,
+        "mode": "hold"
+    }
 }

@@ -314,6 +314,12 @@ export RIPGREP_CONFIG_PATH="${XDG_CONFIG_HOME}/rg/.ripgreprc"
 export SOPS_AGE_KEY_FILE="${XDG_CONFIG_HOME}/sops/age/keys.txt"
 export SOPS_AGE_SSH_PRIVATE_KEY_FILE="${HOME}/.ssh/id_ed25519_sops"
 
+# Decrypted by `make decrypt`; missing until then.
+shell_secrets="${XDG_CONFIG_HOME}/zsh/scripts/secrets.zsh"
+# shellcheck disable=SC1090
+[ -r "${shell_secrets}" ] && source "${shell_secrets}"
+unset shell_secrets
+
 # +----------+
 # | Starship |
 # +----------+

@@ -1,5 +1,5 @@
 creation_rules:
-    - path_regex: ^private/(\.config\.dist/(aws/[^/]+|netrc)|\.ssh\.dist/conf\.d/[^/]+)$
+    - path_regex: ^private/(\.config\.dist/(aws/[^/]+|netrc|zsh/[^/]+)|\.ssh\.dist/conf\.d/[^/]+)$
       shamir_threshold: 2
       key_groups:
           - age:
