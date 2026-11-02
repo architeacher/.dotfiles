@@ -115,15 +115,13 @@ bindkey "${keys[Ctrl+N]}" insert-last-word
 bindkey "${keys[Ctrl+Y]}" accept-and-hold
 bindkey "${keys[Ctrl+W]}" backward-kill-word
 
-## History search with Up/Down keys. It uses the whole line to search
-## Credits to https://coderwall.com/p/jpj_6q/zsh-better-history-searching-with-arrow-keys
-autoload -U up-line-or-beginning-search
-autoload -U down-line-or-beginning-search
-zle -N up-line-or-beginning-search
-zle -N down-line-or-beginning-search
-
-bindkey -- "${keys[Up]}"   up-line-or-beginning-search
-bindkey -- "${keys[Down]}" down-line-or-beginning-search
+## History substring search with Alt+Up/Down; atuin owns Up and Ctrl+R.
+## .zshrc sources this file after plugins.zsh: binding a widget before it
+## exists makes fast-syntax-highlighting warn about an unhandled widget.
+(( $+functions[history-substring-search-up] )) && {
+    bindkey -- "${keys[Alt+Up]}"   history-substring-search-up
+    bindkey -- "${keys[Alt+Down]}" history-substring-search-down
+}
 
 ## Vi Bindings
 bindkey "${keys[Ctrl+A]}" vi-beginning-of-line

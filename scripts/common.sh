@@ -103,9 +103,17 @@ ring_bell() {
 }
 
 notify() {
-    local message="${1}"
+    local message="${1}" \
+          title="${2}" \
+          sub_title="${3}"
 
-    osascript -e "display notification \"${message}\""
+    local notification="display notification \"${message}\""
+    [[ -z "${title}" ]] && notification+=" with title \"${title}\""
+    [[ -z "${sub_title}" ]] && notification+=" subtitle \"${sub_title}\""
+
+    notification+=" sound name \"Breeze\""
+
+    osascript -e "${notification}"
 }
 
 url_decode() {
