@@ -64,6 +64,7 @@ See [docs/architecture.md](docs/architecture.md) for the secrets and backup flow
   - `config/settings.mk` - Colors and variables
 - `build/docker/` - Throwaway `bash:3.2` image for `docker-extract`
 - `tests/` - bats suites; test doubles in `tests/mocks/` (`mocks/backup/` fakes age, the YubiKey plugin and gpg)
+- `harness/` - `agents/`, `skills/` and `recipes/` for coding harnesses; `stow/.config/claude/{agents,recipes,skills}` link into it
 - `docs/` - `CHANGELOG.md`, `architecture.md`
 - `private/`, `wallpapers/` - Git submodules
 

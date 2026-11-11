@@ -1,10 +1,10 @@
 theme = dark:Catppuccin Macchiato,light:Rose Pine Moon
-background-blur-radius = 20
-background-blur-radius = 20
-background-opacity = 0.95
+background-blur-radius = 18
+background-opacity = 0.88
+custom-shader = ~/.config/ghostty/shaders/space.glsl
 font-size = 19
 keybind = shift+enter=text:\x1b\r
+keybind = global:cmd+/=toggle_quick_terminal
 mouse-hide-while-typing = true
-# keybind = global:cmd+/=toggle_quick_terminal
 macos-option-as-alt = true
 window-decoration = true

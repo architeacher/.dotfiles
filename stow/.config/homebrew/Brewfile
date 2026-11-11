@@ -110,10 +110,18 @@ brew "trivy"                                # 🕵🏻‍♂️ A security scann
 brew "ykman"                                # Tool for managing your YubiKey configuration
 
 # Terminal Fun
+brew "cmatrix"
 brew "cowsay"
 brew "fortune"
 brew "lolcat"
 brew "fastfetch"
+
+# Zsh
+brew "zsh-autocomplete"
+brew "zsh-autosuggestions"
+brew "zsh-completions"
+brew "zsh-fast-syntax-highlighting"
+brew "zsh-history-substring-search"
 
 # Apps
 cask "caffeine"                             # ☕️ Prevents the system from going to sleep.
@@ -131,7 +139,9 @@ cask "zed"
 
 brew "llmfit"                               # Find what models run on your hardware.
 brew "opencode"                             # AI coding agent, built for the terminal
+brew "pi-coding-agent"                      # AI agent toolkit
 brew "specify"                              # 💫 A toolkit to help you get started with Spec-Driven Development.
+brew "tuios"                                # Terminal UI OS (Terminal Multiplexer)
 
 cask "chatgpt"                              # 🤖 💬GPT.
 cask "claude"                               # 🤖 Claude.

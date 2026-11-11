@@ -337,7 +337,7 @@ at_exit() {
     esac
 
     run_cmd ring_bell
-    run_cmd notify "Installation is finished with status: ${exit_status}"
+    run_cmd notify "Installation is finished with status: ${exit_status}" "install.sh" "at_exit callback"
 
     exit "${exit_status}"
 }

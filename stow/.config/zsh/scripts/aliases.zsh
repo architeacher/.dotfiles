@@ -34,7 +34,7 @@ alias certify='openssl req -new -x509 -nodes -out cert.pem -keyout cert.key -day
 # | Docker |
 # +--------+
 
-command docker > /dev/null 2>&1 && {
+(( $+commands[docker] )) && {
     alias dco='docker compose'
 }
 
@@ -124,7 +124,7 @@ which kubectl > /dev/null 2>&1 && {
     alias kl='kubectl logs -f'
 }
 
-which kubectl > /dev/null 2>&1 && {
+(( $+commands[kubectx] )) && {
     alias kc='kubectx'
     alias kns='kubens'
 }
