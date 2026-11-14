@@ -14,34 +14,71 @@ readonly LOG_LEVEL_ALERT=1      # Action must be taken immediately
 readonly LOG_LEVEL_EMERGENCY=0  # System is unusable (most severe)
 
 readonly LOG_PREFIX="==>"
-readonly LOG_LEVEL_TAGS=(emergency alert critical error warning notice info debug)
+# Arrays are assigned first, then made readonly: Bash 3.2 makes `readonly name=(...)` local to the
+# function when this file is sourced from one.
+LOG_LEVEL_TAGS=(EMERGENCY ALERT CRITICAL ERROR WARNING NOTICE INFO DEBUG)
+readonly LOG_LEVEL_TAGS
 
-_log_level="${LOG_LEVEL_INFO}"
+readonly LOG_ESCAPE=$'\033'
+readonly LOG_NEWLINE=$'\n'
+readonly LOG_ATTRIBUTE_BOLD=1
 
-# string formatters, True if a go_file descriptor FD is open and refers to a terminal.
-tty_escape() { :; }
+# Theme. One row per level (index = level): "<prefix> <tag> <message>" palette roles, the tag is bold.
+LOG_THEME_LEVELS=(
+    "magenta  maroon  text"        # emergency
+    "pink     red     text"        # alert
+    "violet   purple  cornflower"  # critical
+    "mauve    fuchsia lavender"    # error
+    "orange   yellow  gold"        # warning
+    "olive    lime    muted"       # notice
+    "green    cyan    teal"        # info
+    "sapphire sky     blue"        # debug
+)
+readonly LOG_THEME_LEVELS
 
-[[ -t 1 ]] && tty_escape() { printf "\x1b[%sm" "${1}"; }
+# One palette role per syntax token kind (index = kind): string, variable, assignment, comment,
+# command, flag.
+LOG_THEME_SYNTAX=(yellow purple purple muted green cyan)
+readonly LOG_THEME_SYNTAX
 
-tty_4bit_mk() { tty_escape "${1}"; }
-tty_8bit_mk() { tty_escape "38;5;${1}"; }
-tty_24bit_mkbold() { tty_escape "38;2;${1}"; }
-tty_4bit_mkbold() { tty_4bit_mk "${1};1"; }
-tty_8bit_mkbold() { tty_8bit_mk "${1};1"; }
+# Wrap a command line in LOG_CODE to have it highlighted as one: "DRY RUN: ${LOG_CODE}$*${LOG_CODE}".
+# The character, the ASCII unit separator, does not occur in a command and is never printed.
+readonly LOG_CODE=$'\x1f'
 
-tty_bold="$(tty_4bit_mkbold 39)"
-# shellcheck disable=SC2034
-tty_underline="$(tty_escape "4;39")"
-tty_reset="$(tty_escape 0)"
+readonly LOG_SYNTAX_NAME="[A-Za-z_][A-Za-z0-9_]*"
+readonly LOG_SYNTAX_FLAG="--?[A-Za-z][A-Za-z0-9_-]*"
+# A word with a value, "@=value": the value is a quoted string or runs up to the next space.
+readonly LOG_SYNTAX_VALUED="@=\"[^\"]*\"|@='[^']*'|@=[^[:space:]]*"
 
-# unified roles, shared by all palettes. index = level (0 emergency ... 7 debug)
-readonly LOG_PREFIX_COLORS=(magenta pink violet mauve orange olive green sapphire)
-readonly LOG_TAG_COLORS=(maroon red purple fuchsia yellow lime cyan sky)
-readonly LOG_MSG_COLORS=(text text cornflower lavender gold muted teal blue)
+# Syntax tokens, the kinds atuin highlights: one alternative per kind, in the order of
+# LOG_THEME_SYNTAX. Each is "(<boundary>)(<token>)", exactly two groups: the token is colored where
+# it follows its boundary, so prose like "don't" and "PR #16" is left alone. A pattern is matched
+# against one line at a time.
+# string: "double" or 'single' quoted
+LOG_SYNTAX_TOKENS="([[:space:]=:([])(\"[^\"]*\"|'[^']*')"
+# variable: ${name}, $name, $1, $?
+LOG_SYNTAX_TOKENS+="|(.)([$]\{[^}]*\}|[$]${LOG_SYNTAX_NAME}|[$][-0-9?*@#!$])"
+# assignment: NAME=value
+LOG_SYNTAX_TOKENS+="|([[:space:]])(${LOG_SYNTAX_VALUED//@/${LOG_SYNTAX_NAME}})"
+# comment: "# text", to the end of the line
+LOG_SYNTAX_TOKENS+="|([[:space:]])(#[[:blank:]].*)"
+readonly LOG_SYNTAX_TOKENS
 
+# A message is prose: the tokens, plus the text between two LOG_CODE markers, a command line.
+readonly LOG_SYNTAX_PATTERN="${LOG_SYNTAX_TOKENS}|(.)(${LOG_CODE}[^${LOG_CODE}]+${LOG_CODE})"
+
+# A command line: the tokens, plus
+# command: the first word, and the first word after ; | || &&
+LOG_COMMAND_PATTERN="${LOG_SYNTAX_TOKENS}|(^[[:space:]]+|[;|&][[:space:]]+)([^[:space:];|&=\"'\$#-][^[:space:];|&=]*)"
+# flag: -f, --flag, --flag=value
+LOG_COMMAND_PATTERN+="|([[:space:]])(${LOG_SYNTAX_VALUED//@/${LOG_SYNTAX_FLAG}}|${LOG_SYNTAX_FLAG})"
+readonly LOG_COMMAND_PATTERN
+
+# Palettes. "default" is the base and holds every role the theme names, a scheme overrides the
+# roles it defines.
+# The entries are read through indirect expansion in log_style.
 # shellcheck disable=SC2034
 {
-    RGB_default_aqua="0;255;255"
     RGB_default_blue="82;151;248"
     RGB_default_cornflower="128;152;228"
     RGB_default_cyan="156;207;216"
@@ -49,7 +86,6 @@ readonly LOG_MSG_COLORS=(text text cornflower lavender gold muted teal blue)
     RGB_default_gold="238;195;130"
     RGB_default_green="64;160;43"
     RGB_default_lavender="230;230;250"
-#    RGB_default_lavender="219;118;145"
     RGB_default_lime="138;255;14"
     RGB_default_magenta="255;0;128"
     RGB_default_maroon="128;0;0"
@@ -88,58 +124,94 @@ readonly LOG_MSG_COLORS=(text text cornflower lavender gold muted teal blue)
     RGB_catppuccin_macchiato_yellow="234;157;52"   # gold
 }
 
-# usage: tty_rgb "R;G;B" [bold_flag]
-# truecolor if supported, else nearest 256-color
-tty_rgb() {
-    local rgb="${1:?rgb required}" \
-          bold="${2:-}" \
-          r \
-          g \
-          b
+LOG_PALETTE_NAME=""
 
-    [[ "${COLORTERM:-}" == "truecolor" || "${COLORTERM:-}" == "24bit" ]] && {
-        tty_escape "${bold:+${bold};}38;2;${rgb}"
+# Styles of the active palette, compiled once by log_set_palette. All are empty when colors are off.
+# SGR is Select Graphic Rendition: the ANSI (ECMA-48) escape sequence ESC [ <codes> m.
+LOG_SGR_RESET=""
+LOG_SGR_PREFIX=()
+LOG_SGR_TAG=()
+LOG_SGR_MESSAGE=()
+LOG_SGR_SYNTAX=()
 
-        return
-    }
+_log_level="${LOG_LEVEL_INFO}"
 
-    IFS=';' read -r r g b <<< "${rgb}"
-    tty_escape "${bold:+${bold};}38;5;$(( 16 + 36 * (r * 5 / 255) + 6 * (g * 5 / 255) + (b * 5 / 255) ))"
+# True if stderr, where the log lines go, is open and refers to a terminal.
+log_stderr_is_terminal() { [[ -t 2 ]]; }
+
+# True when log lines get colors. LOG_COLOR is always, never or auto (the default): an explicit
+# always or never wins, auto colors a terminal unless NO_COLOR is set and not empty or TERM is dumb.
+log_color_enabled() {
+    case "${LOG_COLOR:-auto}" in
+        always) return 0 ;;
+        never) return 1 ;;
+        auto) ;;
+        *) abort "Invalid LOG_COLOR: ${LOG_COLOR}" ;;
+    esac
+
+    [[ -z "${NO_COLOR:-}" && "${TERM:-}" != "dumb" ]] && log_stderr_is_terminal
 }
 
-LOG_PALETTE_NAME=""
-LOG_PREFIX_RGB=()
-LOG_TAG_RGB=()
-LOG_MSG_RGB=()
+# usage: log_style <role> [attribute]  (escape sequence in REPLY, empty when colors are off)
+# The role is read from the active palette, else from the default one.
+# truecolor if supported, else nearest 256-color
+log_style() {
+    local role="${1:?role required}" \
+          attribute="${2:-}" \
+          scheme="RGB_${LOG_PALETTE_NAME}_${1}" \
+          base="RGB_default_${1}" \
+          rgb \
+          color \
+          red \
+          green \
+          blue
 
-# usage: color_rgb <name>  (uses the active palette)
-color_rgb() {
-    local role="${1:?color required}" \
-          value \
-          var \
-          fallback
+    rgb="${!scheme:-${!base:-}}"
+    [[ -n "${rgb}" ]] || abort "Unknown color: ${role}"
 
-    var="RGB_${LOG_PALETTE_NAME}_${role}"
-    fallback="RGB_default_${role}"
-    value="${!var:-}"
-    value="${value:-${!fallback:-}}"
+    REPLY=""
+    [[ -n "${LOG_SGR_RESET}" ]] || return 0
 
-    [[ -n "${value}" ]] || abort "Unknown color: ${role}"
-    printf '%s' "${value}"
+    color="2;${rgb}"
+    [[ "${COLORTERM:-}" == "truecolor" || "${COLORTERM:-}" == "24bit" ]] || {
+        IFS=';' read -r red green blue <<< "${rgb}"
+        color="5;$(( 16 + 36 * (red * 5 / 255) + 6 * (green * 5 / 255) + (blue * 5 / 255) ))"
+    }
+
+    REPLY="${LOG_ESCAPE}[${attribute:+${attribute};}38;${color}m"
 }
 
 log_set_palette() {
     local name \
-          index
+          reset="" \
+          level \
+          kind \
+          prefix \
+          tag \
+          message
 
+    # Both checks can abort, so they run before any state changes.
     name="$(tr '[:upper:]-' '[:lower:]_' <<< "${1:?palette required}")"
     compgen -v "RGB_${name}_" > /dev/null || abort "Unknown palette: ${1}"
-    LOG_PALETTE_NAME="${name}"
+    log_color_enabled && reset="${LOG_ESCAPE}[0m"
 
-    for (( index = 0; index < ${#LOG_TAG_COLORS[@]}; index++ )); do
-        LOG_PREFIX_RGB[index]="$(color_rgb "${LOG_PREFIX_COLORS[index]}")"
-        LOG_TAG_RGB[index]="$(color_rgb "${LOG_TAG_COLORS[index]}")"
-        LOG_MSG_RGB[index]="$(color_rgb "${LOG_MSG_COLORS[index]}")"
+    LOG_PALETTE_NAME="${name}"
+    LOG_SGR_RESET="${reset}"
+
+    for (( level = 0; level < ${#LOG_THEME_LEVELS[@]}; level++ )); do
+        IFS=' ' read -r prefix tag message <<< "${LOG_THEME_LEVELS[level]}"
+
+        log_style "${prefix}"
+        LOG_SGR_PREFIX[level]="${REPLY}"
+        log_style "${tag}" "${LOG_ATTRIBUTE_BOLD}"
+        LOG_SGR_TAG[level]="${REPLY}"
+        log_style "${message}"
+        LOG_SGR_MESSAGE[level]="${REPLY}"
+    done
+
+    for (( kind = 0; kind < ${#LOG_THEME_SYNTAX[@]}; kind++ )); do
+        log_style "${LOG_THEME_SYNTAX[kind]}"
+        LOG_SGR_SYNTAX[kind]="${REPLY}"
     done
 }
 
@@ -151,49 +223,91 @@ log_priority() {
     [[ "${priority}" -le "${_log_level}" ]]
 }
 
-display_message() { printf '%b\n' "${*}" >&2; }
+# usage: log_highlight_line <line> <message style> [pattern]  (result in REPLY)
+# Colors every token of the pattern, the prose one by default, and returns to the message style
+# after it. The text between two LOG_CODE markers is not colored as a whole: it is highlighted as a
+# command line, and the markers are dropped.
+log_highlight_line() {
+    local rest=" ${1}" \
+          style="${2}" \
+          pattern="${3:-${LOG_SYNTAX_PATTERN}}" \
+          text="" \
+          kind \
+          plain \
+          token
 
-to_pascal_case() {
-    local input="${1}"
+    # ${rest} starts with one character of context that is never printed: a space at the start of
+    # the line, a dot after a token, so a boundary is not found inside the token before it.
+    while [[ "${rest}" =~ ${pattern} ]]; do
+        for (( kind = 0; kind < ${#LOG_THEME_SYNTAX[@]}; kind++ )); do
+            [[ -n "${BASH_REMATCH[kind * 2 + 2]:-}" ]] && break
+        done
 
-    printf "%s%s" "$(tr '[:lower:]' '[:upper:]' <<< "${input:0:1}")" "${input:1}"
+        token="${BASH_REMATCH[kind * 2 + 2]}"
+        plain="${rest%%"${BASH_REMATCH[0]}"*}${BASH_REMATCH[kind * 2 + 1]}"
+        rest=".${rest:${#plain} + ${#token}}"
+        text+="${plain:1}"
+
+        [[ "${token:0:1}" == "${LOG_CODE}" ]] && {
+            log_highlight_line "${token:1:${#token} - 2}" "${style}" "${LOG_COMMAND_PATTERN}"
+            text+="${REPLY}"
+
+            continue
+        }
+
+        text+="${LOG_SGR_SYNTAX[kind]:-}${token}${style}"
+    done
+
+    REPLY="${text}${rest:1}"
 }
 
-to_upper_case() {
-    local input="${1}"
+# usage: log_highlight <text> <message style>  (result in REPLY)
+# Highlights line by line: no token spans lines, and the time stays linear in the number of lines.
+log_highlight() {
+    local style="${2}" \
+          text="" \
+          line
 
-    printf "%s" "$(tr '[:lower:]' '[:upper:]' <<< "${input}")"
-}
-
-log() {
-    local log_level="${1}" \
-          message="" \
-          tag="" \
-          prefix_color="" \
-          msg_color="" \
-          tag_color="${tty_bold}"
-
-    log_priority "${log_level}" || return 0
-
-    [[ "${log_level}" =~ ^[0-9]+$ ]] && (( log_level < ${#LOG_LEVEL_TAGS[@]} )) && {
-        tag="${LOG_LEVEL_TAGS[${log_level}]}"
-        prefix_color="$(tty_rgb "${LOG_PREFIX_RGB[${log_level}]}")"
-        tag_color="$(tty_rgb "${LOG_TAG_RGB[${log_level}]}" 1)"
-        msg_color="$(tty_rgb "${LOG_MSG_RGB[${log_level}]}")"
-    }
-
-    shift
-    message="${*}"
-
-    [[ "${tag}" != "" ]] && {
-        display_message "${prefix_color}${LOG_PREFIX}${tty_reset} " \
-            "${tag_color}[$(to_upper_case "${tag}")]:${tty_reset}" \
-            "${msg_color}${message}${tty_reset}"
+    [[ "${1}" == *"${LOG_NEWLINE}"* ]] || {
+        log_highlight_line "${1}" "${style}"
 
         return
     }
 
-    printf "%s %s\n" "${LOG_PREFIX}" "${message}"
+    while IFS= read -r line; do
+        log_highlight_line "${line}" "${style}"
+        text+="${REPLY}${LOG_NEWLINE}"
+    done <<< "${1}"
+
+    REPLY="${text%"${LOG_NEWLINE}"}"
+}
+
+log() {
+    local log_level="${1}" \
+          message \
+          style
+
+    log_priority "${log_level}" || return 0
+    shift
+
+    [[ "${log_level}" =~ ^[0-9]+$ && "${log_level}" -lt "${#LOG_LEVEL_TAGS[@]}" ]] || {
+        printf "%s %s\n" "${LOG_PREFIX}" "${*}"
+
+        return
+    }
+
+    style="${LOG_SGR_MESSAGE[log_level]:-}"
+    printf -v message '%b' "${*}"
+    [[ -n "${LOG_SGR_RESET}" ]] && {
+        log_highlight "${message}" "${style}"
+        message="${REPLY}"
+    }
+    message="${message//${LOG_CODE}/}"
+
+    printf '%s  %s %s\n' \
+        "${LOG_SGR_PREFIX[log_level]:-}${LOG_PREFIX}${LOG_SGR_RESET}" \
+        "${LOG_SGR_TAG[log_level]:-}[${LOG_LEVEL_TAGS[log_level]}]:${LOG_SGR_RESET}" \
+        "${style}${message}${LOG_SGR_RESET}" >&2
 }
 
 log_debug() {
@@ -251,7 +365,7 @@ parse_log_level() {
             log_level="${LOG_LEVEL_NOTICE}"
             ;;
         "warning")
-            log_level="${LOG_LEVEL_WARNING}"
+            log_level="${LOG_LEVEL_WARN}"
             ;;
         "error")
             log_level="${LOG_LEVEL_ERROR}"

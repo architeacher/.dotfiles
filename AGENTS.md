@@ -54,7 +54,7 @@ See [docs/architecture.md](docs/architecture.md) for the secrets and backup flow
 - `scripts/` - Installation and setup scripts
   - `install.sh` - Main installation orchestrator
   - `common.sh` - Shared helpers (`is_command`, `abort` via logger, traps)
-  - `logger.sh` - Syslog-style logging framework
+  - `logger.sh` - Syslog-style logging framework: theme table, palettes (`LOG_PALETTE`), colors (`LOG_COLOR=auto|always|never`, `NO_COLOR`), syntax highlighting
   - `macos.sh` - macOS system defaults
   - `secrets.sh` - sops encrypt/decrypt for `private/`, enables the guard
   - `backup.sh` - Key backup entry point; modules in `backup/` (`common`, `gpg`, `age`, `yubikey`, `ssh`, `verify`, `pack`)
@@ -63,8 +63,10 @@ See [docs/architecture.md](docs/architecture.md) for the secrets and backup flow
   - `utils.mk` - Helper targets (help, list, stats, todo)
   - `config/settings.mk` - Colors and variables
 - `build/docker/` - Throwaway `bash:3.2` image for `docker-extract`
-- `tests/` - bats suites; test doubles in `tests/mocks/` (`mocks/backup/` fakes age, the YubiKey plugin and gpg)
+- `tests/` - bats suites; test doubles in `tests/mocks/` (`mocks/backup/` fakes age, the YubiKey plugin and gpg; `mocks/{pi,opencode,codex,claude,tuios}` fake the delegation executors and tuios)
 - `harness/` - `agents/`, `skills/` and `recipes/` for coding harnesses; `stow/.config/claude/{agents,recipes,skills}` link into it
+  - `skills/delegation/` - orchestrator/executor loop: `SKILL.md`, `executor-prompt.md`, `scripts/delegate.sh` (self-contained: it runs from the stowed symlink, outside this repo, so it does not source `scripts/common.sh`)
+  - `skills/rest-api-openapi/` - spec-first REST API design for any project that keeps its contract under `docs/contracts/openapi`: `SKILL.md`, `references/` (layout, endpoint template, status codes, headers, errors, media types, pagination, toolchain), `assets/` (generic redocly ruleset, project config and profile templates a project installs)
 - `docs/` - `CHANGELOG.md`, `architecture.md`
 - `private/`, `wallpapers/` - Git submodules
 
@@ -98,6 +100,7 @@ See [docs/architecture.md](docs/architecture.md) for the secrets and backup flow
 - Write functions, not plain steps
 - Quote variables: `"${var}"` not `$var`
 - Source `scripts/common.sh` and log with `log_info` / `log_notice` / `log_warning` / `abort`, like `install.sh`
+- Wrap a command line in `${LOG_CODE}` inside a log message, `log_notice "DRY RUN: ${LOG_CODE}$*${LOG_CODE}"`: the logger colors its command words and flags and never prints the marker
 - Keep Bash 3.2 compatible (macOS `/bin/bash`, the restore image): no `mapfile`, assoc arrays, `${x,,}`, or `@(a|b)` in `[[ ]]`
 - Do not parse `ls`; use globs, `stat`, or `find` (where `fd` may be missing, e.g. the restore image)
 - Every ShellCheck `disable=` needs a one-line reason above it

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Test double for claude. Appends every call, its stdin and CLAUDE_QUIET to DELEGATE_TEST_CALLS.
+# Honours DELEGATE_STUB_SLEEP, DELEGATE_STUB_PID_FILE, DELEGATE_STUB_IGNORE_TERM,
+# DELEGATE_STUB_RUN_STATUS, DELEGATE_STUB_WRITE_FILE and DELEGATE_STUB_RESULT like mocks/pi.
+
+stdin=""
+[[ -t 0 ]] || stdin="$(cat)"
+
+printf 'claude: %s\nstdin: %s\nquiet: %s\n---\n' "$*" "${stdin}" "${CLAUDE_QUIET:-}" >> "${DELEGATE_TEST_CALLS}"
+
+[[ "${DELEGATE_STUB_IGNORE_TERM:-0}" == 1 ]] && trap '' TERM
+[[ -n "${DELEGATE_STUB_PID_FILE:-}" ]] && printf '%s\n' "$$" > "${DELEGATE_STUB_PID_FILE}"
+[[ -n "${DELEGATE_STUB_SLEEP:-}" ]] && sleep "${DELEGATE_STUB_SLEEP}"
+[[ -n "${DELEGATE_STUB_WRITE_FILE:-}" ]] && printf 'edited by executor\n' > "${DELEGATE_STUB_WRITE_FILE}"
+
+[[ "${DELEGATE_STUB_RUN_STATUS:-0}" -ne 0 ]] && {
+    printf 'stub: provider rejected the request (401)\n' >&2
+    exit "${DELEGATE_STUB_RUN_STATUS}"
+}
+
+printf '%s\n' "${DELEGATE_STUB_RESULT:-stub result}"

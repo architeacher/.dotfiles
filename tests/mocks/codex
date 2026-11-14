@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Test double for codex. Appends every call and its stdin to DELEGATE_TEST_CALLS, writes the
+# final message to the --output-last-message file, and prints a thread.started event when
+# DELEGATE_STUB_THREAD_ID is set. Honours DELEGATE_STUB_SLEEP, DELEGATE_STUB_RUN_STATUS,
+# DELEGATE_STUB_WRITE_FILE and DELEGATE_STUB_RESULT like mocks/pi.
+
+stdin=""
+[[ -t 0 ]] || stdin="$(cat)"
+
+printf 'codex: %s\nstdin: %s\n---\n' "$*" "${stdin}" >> "${DELEGATE_TEST_CALLS}"
+
+output_file=""
+while [[ $# -gt 0 ]]; do
+    [[ "${1}" == "--output-last-message" ]] && output_file="${2}"
+    shift
+done
+
+[[ -n "${DELEGATE_STUB_SLEEP:-}" ]] && sleep "${DELEGATE_STUB_SLEEP}"
+[[ -n "${DELEGATE_STUB_WRITE_FILE:-}" ]] && printf 'edited by executor\n' > "${DELEGATE_STUB_WRITE_FILE}"
+
+[[ "${DELEGATE_STUB_RUN_STATUS:-0}" -ne 0 ]] && {
+    printf 'stub: provider rejected the request (401)\n' >&2
+    exit "${DELEGATE_STUB_RUN_STATUS}"
+}
+
+[[ -n "${DELEGATE_STUB_THREAD_ID:-}" ]] && printf '{"type":"thread.started","thread_id":"%s"}\n' "${DELEGATE_STUB_THREAD_ID}"
+printf '{"type":"turn.completed"}\n'
+
+[[ -n "${output_file}" ]] && printf '%s\n' "${DELEGATE_STUB_RESULT:-stub result}" > "${output_file}"
+
+exit 0

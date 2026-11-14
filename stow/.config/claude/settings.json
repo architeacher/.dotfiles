@@ -1,8 +1,9 @@
 {
   "awsAuthRefresh": "aws sso login --profile Claude",
+  "syncClaudeAiSkills": false,
   "skillListingBudgetFraction": 0.03,
   "env": {
-    "CLAUDE_CODE_USE_ANTHROPIC_AWS": "1",
+    "CLAUDE_CODE_USE_ANTHROPIC_AWS": "false",
     "AWS_PROFILE": "Claude",
     "ENABLE_TOOL_SEARCH": "true",
     "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "true",
@@ -167,7 +168,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus[1m]",
+  "model": "claude-fable-5-2",
   "hooks": {
     "Notification": [
       {
@@ -237,6 +238,9 @@
         ]
       }
     ]
+  },
+  "worktree": {
+    "baseRef": "head"
   },
   "statusLine": {
     "type": "command",
@@ -377,8 +381,6 @@
   "showThinkingSummaries": true,
   "theme": "dark",
   "editorMode": "vim",
-  "skipAutoPermissionPrompt": true,
-  "worktree": {
-    "baseRef": "head"
-  }
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true
 }
