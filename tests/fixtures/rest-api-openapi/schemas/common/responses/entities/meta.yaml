@@ -1,0 +1,20 @@
+Meta:
+  type: object
+  description: Request metadata
+  required:
+    - requestId
+    - apiVersion
+  properties:
+    requestId:
+      type: string
+      format: uuid
+      description: Request id
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    traceId:
+      type: string
+      description: Trace id
+      example: "0af7651916cd43dd8448eb211c80319c"
+    apiVersion:
+      type: string
+      description: API version
+      example: "v1"

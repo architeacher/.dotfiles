@@ -6,6 +6,27 @@ All notable changes to this repository. Format: [Keep a Changelog](https://keepa
 
 ### Added
 
+- **REST API design skill** (`harness/skills/rest-api-openapi/`): spec-first design of REST endpoints with a
+  modular OpenAPI 3.0.3 layout under `docs/contracts/openapi`. The skill is generic: a project supplies its own
+  values (API name, version, base path, problem-type base URL, realm, ADR pointers, additions to the baseline
+  tables) in `docs/contracts/openapi/profile.yaml`, created from `assets/profile.yaml`, and an API that does not
+  follow the layout keeps its own conventions. `references/` holds the directory layout and rule map, the
+  endpoint template, the status-code matrix, header sets, the RFC 9457 error catalogue, media-type decisions,
+  pagination and the toolchain snippets. `assets/rest-api-ruleset.yaml` is the redocly ruleset a project
+  installs verbatim; `assets/redocly.yaml` is the project config that extends it with two apis, so one
+  `redocly bundle` call writes the public bundle (everything marked `x-internal` removed) and the full internal
+  one. The ruleset rejects `Authorization`, `Accept` and `Content-Type` header parameters (OpenAPI 3.0.3
+  ignores them), a version segment in a path, an operation without its own `security`, an undeclared tag and a
+  `POST`, `PUT` or `PATCH` that misses a status of the matrix; a duplicate example key fails the bundle.
+  Contract rules worth knowing: `503` with `Retry-After` on every operation and `500` for defects only; `403`
+  opt-in for an operation restricted by scope, role or ownership; only a successful outcome is stored under an
+  idempotency key; cursor mode omits the totals; the URL selects the version, `API-Version` only asserts it, and
+  a breaking change starts a new `v<N+1>` tree. `tests/rest_api_openapi.bats` (15 tests) builds a contract from
+  the endpoint template's own YAML blocks over the scaffold in `tests/fixtures/rest-api-openapi/`: ten
+  structural tests need only `rg`, among them one that holds the template to the status matrix; five run the
+  ruleset with `@redocly/cli` (checked with 2.78.0: lint clean, both bundles written, seven seeded violations
+  fail) and are skipped when no `redocly` binary is on `PATH` or in `REDOCLY_BIN`.
+
 - **Delegation harness** (`harness/skills/delegation/`): the `delegate` skill keeps the Claude Code session as
   the orchestrator (spec, validation, decision) while a headless executor runs the task on a cheaper model.
   `scripts/delegate.sh` drives `pi` (default, `zai/glm-5.3`), `opencode` (automatic fallback,

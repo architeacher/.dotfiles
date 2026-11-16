@@ -1,0 +1,19 @@
+# Project redocly config. Copy to docs/contracts/openapi/.redocly.yaml and replace <api> and <version>
+# with the values in profile.yaml. Paths are relative to this file, so lint and bundle run the same
+# on a host and in a container.
+extends:
+  - "./rest-api-ruleset.yaml"
+
+apis:
+  # Public contract: everything marked x-internal is removed.
+  main:
+    root: "<api>/<version>/specs.yaml"
+    output: "<api>/<version>/public/swagger-pact.json"
+    decorators:
+      remove-x-internal: on
+  # Full contract: input of the internal (admin) code generator.
+  internal:
+    root: "<api>/<version>/specs.yaml"
+    output: "<api>/<version>/internal/swagger.json"
+
+# Project-only rule overrides go below, for example a longer path-segment-plural exceptions list.

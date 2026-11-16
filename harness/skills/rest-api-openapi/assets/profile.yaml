@@ -1,0 +1,23 @@
+# REST API profile: the project values the rest-api-openapi skill reads before anything else.
+# Copy to docs/contracts/openapi/profile.yaml and replace every <placeholder>.
+
+api: "<api>"                              # directory under docs/contracts/openapi, e.g. "devices"
+version: "<version>"                      # version directory, server path segment and API-Version value, e.g. "v1"
+base_path: "/<version>"                   # prefix of every emitted link: Location, Content-Location, links.*
+reference_resource: "<resources>"         # schemas/<resources>/: the resource new ones are copied from
+
+problem_type_base: "https://docs.<domain>/problems/"   # Problem `type` = this base + kebab-case slug
+auth_realm: "<api>-api"                   # realm in WWW-Authenticate
+cache_name: "<api>-gateway"               # cache identifier in Cache-Status
+
+decisions:                                # where the project recorded each contract decision
+  spec_first: "<ADR id>"
+  authentication: "<ADR id>"
+implementation_status: ""                 # optional: plan file that tracks spec versus implementation
+
+# Project entries beyond the skill's baseline tables. Each one names the ADR that decided it.
+additions:
+  problem_types: []      # - { slug: "widget-recalled", status: 409, title: "Widget Recalled", adr: "ADR-012" }
+  violation_codes: []    # - { code: "recalled", meaning: "Resource was recalled", adr: "ADR-012" }
+  media_types: []        # - { type: "application/json-seq", use: "bulk export", adr: "ADR-015" }
+  headers: []            # - { name: "Widget-Region", direction: "response", adr: "ADR-016" }
