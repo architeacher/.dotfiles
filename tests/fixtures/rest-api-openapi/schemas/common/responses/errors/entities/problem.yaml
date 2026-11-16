@@ -1,0 +1,40 @@
+Problem:
+  type: object
+  description: RFC 9457 problem document
+  required:
+    - requestId
+    - timestamp
+    - type
+    - title
+    - status
+    - detail
+  properties:
+    requestId:
+      type: string
+      format: uuid
+      description: Request id
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    timestamp:
+      type: string
+      format: date-time
+      description: When the problem occurred
+      example: "2024-01-15T10:30:00Z"
+    type:
+      type: string
+      format: uri
+      description: Problem type
+      example: "https://docs.example.com/problems/bad-request"
+    title:
+      type: string
+      description: Constant title
+      example: "Bad Request"
+    status:
+      type: integer
+      minimum: 400
+      maximum: 599
+      description: HTTP status
+      example: 400
+    detail:
+      type: string
+      description: Occurrence detail
+      example: "Request failed."

@@ -63,7 +63,7 @@ See [docs/architecture.md](docs/architecture.md) for the secrets and backup flow
   - `utils.mk` - Helper targets (help, list, stats, todo)
   - `config/settings.mk` - Colors and variables
 - `build/docker/` - Throwaway `bash:3.2` image for `docker-extract`
-- `tests/` - bats suites; test doubles in `tests/mocks/` (`mocks/backup/` fakes age, the YubiKey plugin and gpg; `mocks/{pi,opencode,codex,claude,tuios}` fake the delegation executors and tuios)
+- `tests/` - bats suites; test doubles in `tests/mocks/` (`mocks/backup/` fakes age, the YubiKey plugin and gpg; `mocks/{pi,opencode,codex,claude,tuios}` fake the delegation executors and tuios); `tests/fixtures/rest-api-openapi/` is the scaffold the REST API skill's endpoint template is laid over (its lint and bundle tests need a `redocly` binary on `PATH` or in `REDOCLY_BIN`, and are skipped without one)
 - `harness/` - `agents/`, `skills/` and `recipes/` for coding harnesses; `stow/.config/claude/{agents,recipes,skills}` link into it
   - `skills/delegation/` - orchestrator/executor loop: `SKILL.md`, `executor-prompt.md`, `scripts/delegate.sh` (self-contained: it runs from the stowed symlink, outside this repo, so it does not source `scripts/common.sh`)
   - `skills/rest-api-openapi/` - spec-first REST API design for any project that keeps its contract under `docs/contracts/openapi`: `SKILL.md`, `references/` (layout, endpoint template, status codes, headers, errors, media types, pagination, toolchain), `assets/` (generic redocly ruleset, project config and profile templates a project installs)

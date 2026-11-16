@@ -1,0 +1,32 @@
+Pagination:
+  type: object
+  description: Pagination block
+  required:
+    - size
+    - hasNext
+  properties:
+    size:
+      type: integer
+      minimum: 1
+      maximum: 100
+      description: Page size
+      example: 20
+    hasNext:
+      type: boolean
+      description: Whether a next page exists
+      example: false
+    page:
+      type: integer
+      minimum: 1
+      description: Page number, page mode only
+      example: 1
+    totalItems:
+      type: integer
+      minimum: 0
+      description: Total items, page mode only
+      example: 1
+    totalPages:
+      type: integer
+      minimum: 0
+      description: Total pages, page mode only
+      example: 1

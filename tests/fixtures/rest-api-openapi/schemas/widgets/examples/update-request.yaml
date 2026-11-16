@@ -1,0 +1,9 @@
+widget_full:
+  summary: Full update
+  value:
+    name: "Widget A"
+    status: "active"
+widget_patch_status:
+  summary: Retire a widget
+  value:
+    status: "retired"

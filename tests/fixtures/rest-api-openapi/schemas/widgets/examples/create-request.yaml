@@ -1,0 +1,4 @@
+widget_basic:
+  summary: Minimal widget
+  value:
+    name: "Widget A"

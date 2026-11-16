@@ -1,0 +1,117 @@
+# Generic ruleset of the rest-api-openapi skill: the rules in its SKILL.md, enforced mechanically.
+# Installed verbatim as docs/contracts/openapi/rest-api-ruleset.yaml; the project's .redocly.yaml
+# extends it. Change it in the skill first, then copy it.
+extends:
+  - recommended
+
+rules:
+  no-unresolved-refs: error
+  no-invalid-schema-examples: error
+  no-invalid-media-type-examples: error
+  spec-ref-siblings: error
+  operation-operationId: error
+  operation-summary: error
+  operation-description: error
+  operation-4xx-response: error
+  operation-4xx-problem-details-rfc7807: error
+  operation-tag-defined: error
+  tag-description: error
+  security-defined: error
+  paths-kebab-case: error
+  path-segment-plural:
+    severity: error
+    exceptions:
+      - admin
+      - cache
+      - health
+      - liveness
+      - readiness
+  no-http-verbs-in-paths:
+    severity: error
+    # Whole words only: a substring match rejects /widgets ("get") and /outputs ("put").
+    splitIntoWords: true
+  no-unused-components: error
+  scalar-property-missing-example: warn
+  request-mime-type:
+    severity: error
+    allowedValues:
+      - application/json
+      - application/merge-patch+json
+  response-mime-type:
+    severity: error
+    allowedValues:
+      - application/json
+      - application/problem+json
+  response-contains-header:
+    severity: error
+    names:
+      4XX:
+        - API-Version
+        - Request-Id
+        - Cache-Control
+      "401":
+        - WWW-Authenticate
+      "429":
+        - Retry-After
+      "503":
+        - Retry-After
+  rule/operation-id-camel-case:
+    severity: error
+    subject:
+      type: Operation
+      property: operationId
+    assertions:
+      pattern: /^[a-z][A-Za-z0-9]*$/
+  # security-defined accepts a root-level default; every operation states its own.
+  rule/operation-security-explicit:
+    severity: error
+    subject:
+      type: Operation
+      property: security
+    assertions:
+      defined: true
+  # OpenAPI 3.0.3 ignores header parameters with these names.
+  rule/no-ignored-header-parameters:
+    severity: error
+    subject:
+      type: Parameter
+      property: name
+    where:
+      - subject:
+          type: Parameter
+          property: in
+        assertions:
+          const: header
+    assertions:
+      notPattern: /^(Accept|Content-Type|Authorization)$/i
+  # The version lives in the server URL.
+  rule/no-version-in-paths:
+    severity: error
+    subject:
+      type: Paths
+    assertions:
+      notPattern: /^\/v[0-9]+(\/|$)/
+  rule/post-declares-create-outcomes:
+    severity: error
+    where:
+      - subject:
+          type: Operation
+          filterInParentKeys: [post]
+        assertions:
+          defined: true
+    subject:
+      type: Responses
+    assertions:
+      required: ["201", "400", "401", "406", "409", "413", "415", "422", "429", "500", "503"]
+  rule/put-patch-declare-precondition-outcomes:
+    severity: error
+    where:
+      - subject:
+          type: Operation
+          filterInParentKeys: [put, patch]
+        assertions:
+          defined: true
+    subject:
+      type: Responses
+    assertions:
+      required: ["200", "400", "401", "404", "406", "409", "412", "413", "415", "422", "429", "500", "503"]

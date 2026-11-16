@@ -1,0 +1,21 @@
+widgets_list:
+  summary: One page of widgets
+  value:
+    data:
+      - id: "019234a5-6b7c-7d9e-8f12-34567890abcd"
+        name: "Widget A"
+        status: "active"
+        createdAt: "2024-01-15T10:30:00Z"
+        updatedAt: "2024-01-15T10:30:00Z"
+        links:
+          self: "/v1/widgets/019234a5-6b7c-7d9e-8f12-34567890abcd"
+    meta:
+      requestId: "550e8400-e29b-41d4-a716-446655440000"
+      traceId: "0af7651916cd43dd8448eb211c80319c"
+      apiVersion: "v1"
+    pagination:
+      size: 20
+      hasNext: false
+      page: 1
+      totalItems: 1
+      totalPages: 1

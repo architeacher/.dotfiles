@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: Acme API
+  version: 1.0.0
+  description: Scaffold for tests/rest_api_openapi.bats. The endpoint template fills the marked lines.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: https://api.acme.test/{version}
+    description: Test
+    variables:
+      version:
+        default: v1
+        enum:
+          - v1
+security:
+  - PasetoAuth: []
+tags:
+# <template: tags>
+  - name: Admin
+    description: Internal administration
+    x-internal: true
+  - name: System
+    description: Health probes
+paths:
+# <template: paths>
+  /admin/cache:
+    x-internal: true
+    delete:
+      summary: Purge the cache
+      description: Purges every cache entry.
+      operationId: purgeCache
+      tags:
+        - Admin
+      security:
+        - BasicAuth: []
+      responses:
+        "200":
+          description: Cache purged
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Purge result
+                properties:
+                  purged:
+                    type: integer
+                    description: Number of purged entries
+                    example: 3
+        "401":
+          $ref: "schemas/common/responses/errors/unauthorized.yaml"
+        "500":
+          $ref: "schemas/common/responses/errors/server-error.yaml"
+        "503":
+          $ref: "schemas/common/responses/errors/service-unavailable.yaml"
+  /liveness:
+    get:
+      summary: Liveness probe
+      description: Reports whether the process is alive.
+      operationId: getLiveness
+      tags:
+        - System
+      security: []
+      responses:
+        "200":
+          description: Alive
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Liveness state
+                properties:
+                  status:
+                    type: string
+                    description: Process state
+                    example: up
+        "429":
+          $ref: "schemas/common/responses/errors/rate-limit.yaml"
+        "503":
+          $ref: "schemas/common/responses/errors/service-unavailable.yaml"
+components:
+  parameters:
+# <template: parameters>
+  securitySchemes:
+    PasetoAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: PASETO v4
+    BasicAuth:
+      type: http
+      scheme: basic
