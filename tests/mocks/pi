@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Test double for pi. Appends every call to DELEGATE_TEST_CALLS, a prompt run with its stdin,
+# and honours:
+#   DELEGATE_STUB_AUTH_STATUS    exit code of `pi auth check` (default 0, ready)
+#   DELEGATE_STUB_RUN_STATUS     exit code of a prompt run (default 0)
+#   DELEGATE_STUB_WRITE_FILE     file the fake executor creates during a run
+#   DELEGATE_STUB_RESULT         final assistant text (default "stub result")
+#   DELEGATE_STUB_SESSION_ID     id of the JSON session header (default: the --session-id value)
+#   DELEGATE_STUB_STOP_REASON    stopReason of the final assistant message (default stop);
+#                                error and aborted come with empty content, like pi
+#   DELEGATE_STUB_ERROR_MESSAGE  errorMessage of the final assistant message
+#   DELEGATE_STUB_SLEEP          seconds to sleep before answering (watchdog tests)
+#   DELEGATE_STUB_HANG           seconds to sleep after the messages, before agent_settled
+#   DELEGATE_STUB_PID_FILE       file that receives the pid of a prompt run
+#   DELEGATE_STUB_IGNORE_TERM    1 makes a prompt run ignore SIGTERM
+#   DELEGATE_STUB_NOISE          a line printed on stdout ahead of the event stream
+#   DELEGATE_STUB_SILENT         1 leaves the assistant messages out of the event stream
+# With --mode json the reply is pi's event stream (two assistant messages, the first
+# with a thinking part); otherwise plain text.
+
+printf 'pi: %s\nagent_dir: %s\noffline: %s\n---\n' "$*" "${PI_CODING_AGENT_DIR:-}" "${PI_OFFLINE:-}" \
+    >> "${DELEGATE_TEST_CALLS}"
+
+[[ "${1:-}" == "auth" ]] && exit "${DELEGATE_STUB_AUTH_STATUS:-0}"
+
+stdin=""
+[[ -t 0 ]] || stdin="$(cat)"
+printf 'stdin: %s\n---\n' "${stdin}" >> "${DELEGATE_TEST_CALLS}"
+
+json=false
+session=""
+while [[ $# -gt 0 ]]; do
+    case "${1}" in
+        --mode) [[ "${2:-}" == json ]] && json=true; shift ;;
+        --session-id) session="${2:-}"; shift ;;
+        --) break ;;
+    esac
+    shift
+done
+
+[[ "${DELEGATE_STUB_IGNORE_TERM:-0}" == 1 ]] && trap '' TERM
+[[ -n "${DELEGATE_STUB_PID_FILE:-}" ]] && printf '%s\n' "$$" > "${DELEGATE_STUB_PID_FILE}"
+[[ -n "${DELEGATE_STUB_SLEEP:-}" ]] && sleep "${DELEGATE_STUB_SLEEP}"
+[[ -n "${DELEGATE_STUB_WRITE_FILE:-}" ]] && printf 'edited by executor\n' > "${DELEGATE_STUB_WRITE_FILE}"
+
+[[ "${DELEGATE_STUB_RUN_STATUS:-0}" -ne 0 ]] && {
+    printf 'stub: provider rejected the request (401)\n' >&2
+    exit "${DELEGATE_STUB_RUN_STATUS}"
+}
+
+result="${DELEGATE_STUB_RESULT:-stub result}"
+stop="${DELEGATE_STUB_STOP_REASON:-stop}"
+
+[[ "${json}" == true ]] || {
+    printf '%s\n' "${result}"
+    exit 0
+}
+
+[[ -n "${DELEGATE_STUB_NOISE:-}" ]] && printf '%s\n' "${DELEGATE_STUB_NOISE}"
+
+jq -cn --arg id "${DELEGATE_STUB_SESSION_ID:-${session}}" \
+    '{type: "session", version: 3, id: $id, timestamp: "2026-11-14T00:00:00.000Z", cwd: "."}'
+jq -cn '{type: "message_end", message: {role: "user", content: [{type: "text", text: "task"}]}}'
+
+[[ "${DELEGATE_STUB_SILENT:-0}" == 1 ]] && {
+    jq -cn '{type: "agent_settled", aborted: false}'
+    exit 0
+}
+
+jq -cn '{type: "message_end", message: {role: "assistant",
+         content: [{type: "thinking", thinking: "thinking aloud"}, {type: "text", text: "first part"}],
+         provider: "zai", model: "glm-5.3",
+         usage: {input: 7, output: 3, cacheRead: 0, cacheWrite: 0, totalTokens: 10,
+                 cost: {input: 0.5, output: 0, cacheRead: 0, cacheWrite: 0, total: 0.5}},
+         stopReason: "toolUse"}}'
+jq -cn --arg text "${result}" --arg stop "${stop}" --arg err "${DELEGATE_STUB_ERROR_MESSAGE:-}" \
+    '{type: "message_end", message: ({role: "assistant",
+       content: (if $stop == "error" or $stop == "aborted" then [] else [{type: "text", text: $text}] end),
+       provider: "zai", model: "glm-5.3",
+       usage: {input: 3, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 5,
+               cost: {input: 0.25, output: 0, cacheRead: 0, cacheWrite: 0, total: 0.25}},
+       stopReason: $stop} + (if $err == "" then {} else {errorMessage: $err} end))}'
+
+[[ -n "${DELEGATE_STUB_HANG:-}" ]] && sleep "${DELEGATE_STUB_HANG}"
+
+jq -cn '{type: "agent_settled", aborted: false}'

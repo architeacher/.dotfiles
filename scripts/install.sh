@@ -34,7 +34,7 @@ declare_global_vars() {
 
 # Runs a command or logs it under dry run.
 run_cmd() {
-    [[ "${DRY_RUN}" == "true" ]] && { log_notice "DRY RUN: $*"; return 0; }
+    [[ "${DRY_RUN}" == "true" ]] && { log_notice "DRY RUN: ${LOG_CODE}$*${LOG_CODE}"; return 0; }
 
     "$@"
 }
@@ -319,7 +319,7 @@ at_exit() {
 
     case "${signal}" in
         ERR)
-            log_error "Command failed (exit ${ret}) at line ${line_no}: ${cmd}\n Stack trace:\n${stack_trace}"
+            log_error "Command failed (exit ${ret}) at line ${line_no}: ${LOG_CODE}${cmd}${LOG_CODE}\n Stack trace:\n${stack_trace}"
             exit_status="${ret}"
 
             return

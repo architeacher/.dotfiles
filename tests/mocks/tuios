@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Test double for tuios. Appends every call to DELEGATE_TEST_CALLS and honours:
+#   DELEGATE_STUB_TUIOS_SERVER  0 makes `tuios ls` fail like a missing daemon
+#   DELEGATE_STUB_TUIOS_STATE   agent state reported by get-agent-state (default idle);
+#                               needs_input makes ask-agent refuse with agent_blocked
+#   DELEGATE_STUB_RESULT        the reply ask-agent prints (default "stub result")
+
+printf 'tuios: %s\n---\n' "$*" >> "${DELEGATE_TEST_CALLS}"
+
+state="${DELEGATE_STUB_TUIOS_STATE:-idle}"
+
+case "${1:-}" in
+    ls)
+        [[ "${DELEGATE_STUB_TUIOS_SERVER:-1}" == 0 ]] && {
+            printf 'The TUIOS daemon is not running, and no sessions are saved on disk.\n' >&2
+            exit 1
+        }
+        printf 'delegate: 1 window\n'
+        ;;
+    start-agent)
+        exit 0
+        ;;
+    ask-agent)
+        [[ "${state}" == needs_input ]] && {
+            printf 'agent_blocked: the agent waits on a prompt\n' >&2
+            exit 1
+        }
+        printf '%s\n' "${DELEGATE_STUB_RESULT:-stub result}"
+        ;;
+    get-agent-state)
+        printf '%s\n' "${state}"
+        ;;
+    peek-prompt)
+        printf 'Allow edit of tracked.txt? [y/n]\n'
+        ;;
+    *)
+        printf 'stub has no answer for %s\n' "$*" >&2
+        exit 1
+        ;;
+esac
