@@ -73,6 +73,23 @@ file_mode() {
     [ -z "${session_five_hour}" ]
 }
 
+@test "parse_session: reads the effort level, empty when the model has none" {
+    local cases=(
+        '{"model":{"display_name":"Opus"},"effort":{"level":"xhigh"}}|Opus,xhigh'
+        '{"model":{"display_name":"Haiku"}}|Haiku,'
+        '{"effort":{"level":null}}|,'
+    ) \
+        entry \
+        expected
+
+    for entry in "${cases[@]}"; do
+        expected="${entry#*|}"
+
+        parse_session "${entry%%|*}"
+        [ "${session_model},${session_effort}" == "${expected}" ]
+    done
+}
+
 # --- format_os --------------------------------------------------------------
 
 @test "format_os: picks the icon from OSTYPE" {
@@ -352,6 +369,14 @@ file_mode() {
     [ -z "${output}" ]
 }
 
+@test "format_effort: shows the effort level when present" {
+    run format_effort "high"
+    [ "${output}" == "high" ]
+
+    run format_effort ""
+    [ -z "${output}" ]
+}
+
 # --- format_context ---------------------------------------------------------
 
 @test "format_context: colors by percentage when token usage is unknown" {
@@ -392,7 +417,7 @@ file_mode() {
         expected
 
     for entry in "${cases[@]}"; do
-        expected="$(paint "${entry#*|}" "${icon_context} 1%")"
+        expected="$(paint "${entry#*|}" "${icon_context} 1% $(format_tokens "${entry%%|*}")")"
 
         run format_context "1" "${entry%%|*}"
         [ "${status}" -eq 0 ]
@@ -417,7 +442,49 @@ file_mode() {
 
         run format_context "${percent}" "${rest%%|*}"
         [ "${status}" -eq 0 ]
-        [ "${output}" == "$(paint "${rest#*|}" "${icon_context} ${percent}%")" ]
+        [ "${output}" == "$(paint "${rest#*|}" "${icon_context} ${percent}% $(format_tokens "${rest%%|*}")")" ]
+    done
+}
+
+@test "format_tokens: shortens to K and M, hides non-numeric input" {
+    local cases=(
+        "0|0"
+        "999|999"
+        "1000|1K"
+        "1499|1K"
+        "1500|2K"
+        "84320|84K"
+        "999499|999K"
+        "999500|1M"
+        "1000000|1M"
+        "1250000|1.3M"
+        "2040000|2M"
+        "|"
+        "null|"
+    ) \
+        entry
+
+    for entry in "${cases[@]}"; do
+        run format_tokens "${entry%%|*}"
+        [ "${status}" -eq 0 ]
+        [ "${output}" == "${entry#*|}" ]
+    done
+}
+
+@test "format_context: shows the context tokens after the percentage, only when known" {
+    local cases=(
+        "42|84320|${icon_context} 42% 84K"
+        "42||${icon_context} 42%"
+        "42|null|${icon_context} 42%"
+    ) \
+        entry \
+        rest
+
+    for entry in "${cases[@]}"; do
+        rest="${entry#*|}"
+
+        run format_context "${entry%%|*}" "${rest%%|*}"
+        [ "${output}" == "${rest#*|}" ]
     done
 }
 
@@ -554,6 +621,14 @@ file_mode() {
     [ "${status}" -eq 0 ]
     [[ "${output}" == *"${icon_model} Opus"* ]]
     [ "${#lines[@]}" -eq 1 ]
+}
+
+@test "main: renders the effort level next to the model" {
+    run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"model\":{\"display_name\":\"Opus\"},\"effort\":{\"level\":\"high\"}}' \
+        | NO_COLOR=1 '${BATS_TEST_DIRNAME}/../stow/.config/claude/status_line.sh'"
+
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"${icon_model} Opus high"* ]]
 }
 
 @test "main: adds a rate-limit line only when the JSON has rate_limits" {

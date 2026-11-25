@@ -7,12 +7,18 @@ setup() {
     ln -s "${BATS_TEST_DIRNAME}/../scripts/install.sh" "${TEST_DIR}/install.sh"
     ln -s "${BATS_TEST_DIRNAME}/../scripts/common.sh" "${TEST_DIR}/common.sh"
     ln -s "${BATS_TEST_DIRNAME}/../scripts/logger.sh" "${TEST_DIR}/logger.sh"
+    ln -s "${BATS_TEST_DIRNAME}/../scripts/progress.sh" "${TEST_DIR}/progress.sh"
 
     # Mocks first on PATH, so fake brew/git/stow win over real ones.
     PATH="${BATS_TEST_DIRNAME}/mocks:${PATH}"
 
     # shellcheck disable=SC1091
     source "${TEST_DIR}/install.sh"
+
+    # The exit handler rings, notifies and speaks: not for real during a test run.
+    ring_bell() { :; }
+    notify() { :; }
+    speak() { :; }
 
     FIXTURES="${BATS_TEST_DIRNAME}/fixtures/stow"
 
@@ -22,6 +28,7 @@ setup() {
     # parse_args normally sets these before any other function runs;
     # tests that call a function directly need the same defaults.
     DRY_RUN="false"
+    ASSUME_YES="false"
     DISABLED_PACKAGES=""
     DISABLED_FILE=""
     XDG_CONFIG_HOME="${TEST_DIR}/config"
@@ -221,6 +228,8 @@ teardown() {
         "DISABLED_FILE||"
         "DRY_RUN||false"
         "DRY_RUN|true|true"
+        "ASSUME_YES||false"
+        "ASSUME_YES|true|true"
         "LOG_LEVEL||${_log_level}"
         "LOG_LEVEL|7|7"
     ) \
@@ -252,6 +261,17 @@ teardown() {
 @test "parse_args: -n sets DRY_RUN=true" {
     parse_args -n
     [ "${DRY_RUN}" == "true" ]
+}
+
+@test "parse_args: -y sets ASSUME_YES=true, without it the question stays" {
+    unset ASSUME_YES
+
+    parse_args -n
+    [ "${ASSUME_YES}" == "false" ]
+
+    OPTIND=1
+    parse_args -y
+    [ "${ASSUME_YES}" == "true" ]
 }
 
 @test "parse_args: -d sets DISABLED_PACKAGES" {
@@ -395,8 +415,101 @@ SCRIPT
 @test "stow_config: strips leading ./ from dir before stowing" {
     DRY_RUN="true"
     run stow_config "./somepath"
-    [[ "${output}" == *"DRY RUN: stow --adopt"*"somepath"* ]]
+    [[ "${output}" == *"DRY RUN: stow --adopt somepath"* ]]
     [[ "${output}" != *"./somepath"* ]]
+}
+
+# stow adopts real files from the home dir. Over a tracked link that would copy a secret into the repo.
+@test "refuse_adopting_over_links: stops on a real file where the repository has a link" {
+    # what sits in the home dir at the link's place|expected status
+    local cases=("file|1" "link|0" "nothing|0") \
+        entry \
+        kind
+
+    # Stands in for git ls-files -s -z: one regular file, one link.
+    git() {
+        printf '100644 abc 0\tpkg/plain\0'
+        printf '120000 abc 0\tpkg/.netrc\0'
+    }
+
+    for entry in "${cases[@]}"; do
+        kind="${entry%%|*}"
+        HOME="${TEST_DIR}/home-${kind}"
+        mkdir -p "${HOME}"
+        printf 'plain\n' > "${HOME}/plain"
+
+        case "${kind}" in
+            file) printf 'secret\n' > "${HOME}/.netrc" ;;
+            link) ln -s /dev/null "${HOME}/.netrc" ;;
+        esac
+
+        run refuse_adopting_over_links "./pkg/"
+        [ "${status}" -eq "${entry#*|}" ]
+    done
+
+    git() {
+        return 1
+    }
+
+    run refuse_adopting_over_links "pkg"
+    [ "${status}" -ne 0 ]
+}
+
+# `run` calls the function without errexit, like a caller that uses it in a condition.
+@test "stow_config: does not stow when the link check fails" {
+    git() {
+        printf '120000 abc 0\tpkg/.netrc\0'
+    }
+
+    DRY_RUN="true"
+    mkdir -p "${HOME}"
+    printf 'secret\n' > "${HOME}/.netrc"
+
+    run stow_config "./pkg/"
+    [ "${status}" -ne 0 ]
+    [[ "${output}" != *"DRY RUN: stow"* ]]
+}
+
+# --- stow/.ssh/scripts/install.sh -------------------------------------------
+
+# Stands in for ssh-keygen: writes the key file, like a real run that overwrites.
+ssh-keygen() {
+    local file=""
+
+    while [[ "$#" -gt 0 ]]; do
+        [[ "${1}" == "-f" ]] && file="${2}"
+        shift
+    done
+
+    printf 'new\n' > "${file}"
+}
+
+run_ssh_installer() {
+    # shellcheck disable=SC1091
+    ( source "${BATS_TEST_DIRNAME}/../stow/.ssh/scripts/install.sh" )
+}
+
+@test "ssh installer: overwrites an existing key only under FORCE_REINSTALL, creates a missing one" {
+    # FORCE_REINSTALL|the existing key afterwards
+    local cases=("true|new" "false|old") \
+        entry \
+        force
+
+    GIT_EMAIL="me@example.com"
+    PASS_PHRASE="secret"
+
+    for entry in "${cases[@]}"; do
+        force="${entry%%|*}"
+        FORCE_REINSTALL="${force}"
+        HOME="${TEST_DIR}/home-${force}"
+        mkdir -p "${HOME}/.ssh"
+        printf 'old\n' > "${HOME}/.ssh/id_ed25519"
+
+        run run_ssh_installer
+        [ "${status}" -eq 0 ]
+        [ "$(cat "${HOME}/.ssh/id_ed25519")" == "${entry#*|}" ]
+        [ "$(cat "${HOME}/.ssh/id_rsa")" == "new" ]
+    done
 }
 
 # --- start_services / script_cleanup (dry run smoke tests) ----------------
@@ -438,6 +551,7 @@ SCRIPT
     [ "${status}" -eq 0 ]
     [[ "${output}" == *"Usage: install.sh"* ]]
     [[ "${output}" == *"-n dry run"* ]]
+    [[ "${output}" == *"-y installs without asking"* ]]
 }
 
 # --- install_warp_themes / install_zsh_fast_syntax_highlighting_themes / install_apps_themes ---
@@ -510,6 +624,24 @@ SCRIPT
     [ "${status}" -eq 1 ]
 }
 
+@test "at_exit: says the success message aloud, and only on success" {
+    speak() { echo "spoken: ${1}"; }
+    script_cleanup() { :; }
+    DRY_RUN="false"
+
+    run at_exit EXIT 0
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"spoken: "*"Congratulations, you can now chillax!"* ]]
+
+    exit_status=3
+    run at_exit EXIT 3
+    [ "${status}" -eq 3 ]
+    [[ "${output}" != *"spoken: "* ]]
+
+    run at_exit INT 0
+    [[ "${output}" != *"spoken: "* ]]
+}
+
 @test "at_exit: EXIT with ret=0 runs cleanup and prints success" {
     DRY_RUN="true"
     cleanup_list=()
@@ -527,6 +659,30 @@ SCRIPT
     [[ "${output}" != *"Congratulations"* ]]
 }
 
+@test "at_exit: stops the progress line on exit and on a signal, not on ERR" {
+    progress_stop() { echo "progress stopped"; }
+    DRY_RUN="true"
+
+    local cases=(
+        "EXIT|0|yes"
+        "INT|130|yes"
+        "ERR|1|no"
+    ) \
+    entry signal code stopped
+
+    for entry in "${cases[@]}"; do
+        IFS='|' read -r signal code stopped <<< "${entry}"
+
+        run at_exit "${signal}" "${code}"
+
+        if [[ "${stopped}" == "yes" ]]; then
+            [[ "${output}" == *"progress stopped"* ]] || { echo "${signal}: line not stopped"; return 1; }
+        else
+            [[ "${output}" != *"progress stopped"* ]] || { echo "${signal}: line stopped"; return 1; }
+        fi
+    done
+}
+
 # --- prepare / install / main (full-flow smoke tests, dry run + mocks) ----
 
 @test "prepare: parses args, validates, and prints config without exiting" {
@@ -539,13 +695,62 @@ SCRIPT
     [[ "${output}" == *"DRY_RUN=true"* ]]
 }
 
+@test "prepare: a decline ends the run with status 0, before the config and the directories" {
+    confirm_install() { return 1; }
+    create_dirs() { echo "directories created"; }
+    cd "${TEST_DIR}"
+    touch .envrc
+
+    run prepare -n
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"Nothing installed."* ]]
+    [[ "${output}" != *"Config:"* ]]
+    [[ "${output}" != *"directories created"* ]]
+}
+
+@test "prepare: shows the logo of the repository" {
+    DRY_RUN="false"
+    touch "${TEST_DIR}/.envrc"
+    cd "${BATS_TEST_DIRNAME}/.."
+
+    run prepare -e "${TEST_DIR}/.envrc" -n
+    [ "${status}" -eq 0 ]
+    # A missing logo would make the pattern below match anything.
+    [ -s assets/logo-blocks.txt ]
+    [[ "${output}" == *"$(sed 's/^/  /' assets/logo-blocks.txt)"* ]]
+}
+
 @test "prepare: with -f style typo still uses default ENV_FILE" {
     DRY_RUN="false"
     cd "${TEST_DIR}"
     touch .envrc
-    run prepare
+    # Dry: prepare sets the exit handler, which would run the brew cleanup for real.
+    run prepare -n
     [ "${status}" -eq 0 ]
     [[ "${output}" == *"ENV_FILE=.envrc"* ]]
+}
+
+@test "main: is the plain sequence of prepare, install, services and wallpapers" {
+    prepare() { echo "prepare $*"; }
+    install() { echo "install"; }
+    start_services() { echo "services"; }
+    set_wallpapers() { echo "wallpapers"; }
+    cd "${TEST_DIR}"
+    mkdir -p wallpapers
+
+    run main -n
+    [ "${status}" -eq 0 ]
+    [ "${output}" == "prepare -n${LOG_NEWLINE}install${LOG_NEWLINE}services${LOG_NEWLINE}wallpapers" ]
+}
+
+# The percentage on the progress line is the steps done over the steps announced.
+@test "install: announces as many steps as it runs" {
+    progress_steps() { echo "announced ${1}"; }
+    progress_run() { echo "step"; }
+
+    run install
+    [ "${status}" -eq 0 ]
+    [ "${lines[0]}" == "announced $(( ${#lines[@]} - 1 ))" ]
 }
 
 @test "install: runs brew, stow, run_installers and themes in sequence (dry run)" {
@@ -567,4 +772,102 @@ SCRIPT
     [ "${status}" -eq 0 ]
     [[ "${output}" == *"Config:"* ]]
     [[ "${output}" == *"DRY_RUN=true"* ]]
+}
+
+@test "confirm_install: asks with the install and the do-nothing choice" {
+    progress_confirm() { printf '%s|' "$@"; }
+
+    run confirm_install
+    [ "${status}" -eq 0 ]
+    [ "${output}" == "Choose an action:|Install .dotfiles|Do nothing|" ]
+}
+
+@test "confirm_install: -y says yes and nothing is asked" {
+    progress_confirm() { echo "asked"; return 1; }
+    ASSUME_YES="true"
+
+    run confirm_install
+    [ "${status}" -eq 0 ]
+    [ -z "${output}" ]
+}
+
+@test "main: with -y the installation starts without a question" {
+    progress_confirm() { echo "asked"; return 1; }
+    install() { echo "installing"; }
+    start_services() { :; }
+    set_wallpapers() { :; }
+    cd "${TEST_DIR}"
+    touch .envrc
+    mkdir -p wallpapers
+
+    run main -n -y
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"installing"* ]]
+    [[ "${output}" != *"asked"* ]]
+}
+
+@test "main: the exit handler is off while asking and on again after a yes" {
+    confirm_install() { printf 'asking:'; trap -p EXIT; printf '|\n'; }
+    install() { printf 'installing:'; trap -p EXIT; printf '|\n'; }
+    start_services() { :; }
+    set_wallpapers() { :; }
+    cd "${TEST_DIR}"
+    touch .envrc
+    mkdir -p wallpapers
+
+    run main -n
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"asking:|"* ]]
+    [[ "${output}" == *"installing:trap -- 'at_exit EXIT "* ]]
+}
+
+@test "main: asks before it prints the config or creates a directory" {
+    confirm_install() { echo "asked"; }
+    create_dirs() { echo "directories created"; }
+    install() { :; }
+    start_services() { :; }
+    set_wallpapers() { :; }
+    cd "${TEST_DIR}"
+    touch .envrc
+    mkdir -p wallpapers
+
+    run main -n
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"asked"*"Config:"* ]]
+    [[ "${output}" != *"Config:"*"asked"* ]]
+    [[ "${output}" == *"asked"*"directories created"* ]]
+    [[ "${output}" != *"directories created"*"asked"* ]]
+}
+
+@test "main: installs and creates nothing and skips the exit handler when declined" {
+    confirm_install() { return 1; }
+    XDG_STATE_HOME="${TEST_DIR}/state"
+    cd "${TEST_DIR}"
+    touch .envrc
+    mkdir -p wallpapers stow/.config/homebrew
+
+    run main -n
+    [ "${status}" -eq 0 ]
+    [ ! -e "${XDG_STATE_HOME}" ]
+    [[ "${output}" == *"Nothing installed."* ]]
+    [[ "${output}" != *"Config:"* ]]
+    [[ "${output}" != *"Installing Homebrew"* ]]
+    [[ "${output}" != *"brew autoremove"* ]]
+    [[ "${output}" != *"Congratulations"* ]]
+}
+
+@test "main: before the install starts nothing is cleaned up and a failure exits non-zero" {
+    # arguments|expected status
+    local cases=("-n -h|0" "-n -e ${TEST_DIR}/missing-envrc|1") \
+        entry
+
+    cd "${TEST_DIR}"
+
+    for entry in "${cases[@]}"; do
+        # shellcheck disable=SC2086 # the arguments are split on purpose.
+        run main ${entry%|*}
+        [ "${status}" -eq "${entry##*|}" ]
+        [[ "${output}" != *"brew autoremove"* ]]
+        [[ "${output}" != *"Congratulations"* ]]
+    done
 }

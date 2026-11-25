@@ -26,6 +26,39 @@ that tooling (linters, formatters, type checkers) already enforces.
 
 - Security architecture: auth, data access, API boundaries.
 
+### Contract compatibility
+
+Skip Contract compatibility when the diff touches no contract.
+
+A **contract** is any interface that another service or deployable consumes: an HTTP or RPC API, an event or message
+payload, a queue or topic name, a shared database schema, a shared configuration or file format.
+
+A change is **breaking** when a producer or consumer built against the base branch can fail against it: a removed or
+renamed field, endpoint, topic, or enum value; a changed type, unit, format, or meaning; a new required request
+field; a response field that is no longer always present; stricter validation; changed status or error codes. An
+additive change (a new optional field, a new endpoint) is not breaking.
+
+Every breaking change needs one of these in the same MR/PR. Without one, the finding is blocking:
+
+- **A new version**: the change ships as a new version of the contract (path, media type, schema or topic version,
+  package), and the old version keeps working until its consumers have moved.
+
+- **A fallback**: both shapes work during the rollout. The writer emits the old and the new shape, the reader accepts
+  both, or a flag that defaults to the old shape gates the new one.
+
+- **No consumer left**: the change removes an old version or a fallback, and a deprecation record, usage data, or a
+  consumer search shows that no consumer still uses it. Treat a statement in the MR/PR text as a claim until checked.
+  A search of this repository alone is not proof when a consumer can live in another one.
+
+Also check. These are advisory, and they are what makes a version or a fallback hold in production:
+
+- Deploy order: the change works whichever side deploys first, and after a rollback of either side. Messages already
+  queued or stored in the old shape still parse.
+
+- The contract file (OpenAPI, proto, AsyncAPI, JSON Schema) changes in the same MR/PR as the code.
+
+- A test pins the old shape for as long as it is supported.
+
 ## Code Quality
 
 - Type safety and explicitness where the language supports it. No untyped or weakly typed escapes without
@@ -48,7 +81,7 @@ that tooling (linters, formatters, type checkers) already enforces.
 ### Smell baseline
 
 Fowler code smells (_Refactoring_, ch. 3). Each smell is a judgement call, never a hard violation: label it
-"possible <smell>", quote the hunk, and keep it advisory. Each reads *what it is* → *how to fix*.
+"possible <smell>", cite the hunk, and keep it advisory. Each reads *what it is* → *how to fix*.
 
 - **Mysterious Name**: a function, variable, or type whose name does not reveal what it does or holds. → Rename
   it. If no honest name comes, the design is unclear.
@@ -146,7 +179,7 @@ All checks in this section are advisory.
 - A **Glossary section** when the change introduces new terms, patterns, or acronyms.
 
 - Summary bullets are narrative: each answers what changed and why it matters to the reader. Label-only bullets
-  (for example, "CI updates") get a `nit:`.
+  (for example, "CI updates") get the severity `nit`.
 
 ## Technical Decisions
 

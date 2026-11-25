@@ -67,6 +67,7 @@ Please follow these instructions to set up your Mac.
     ```bash
     make install
     ```
+    The installer asks before it installs anything: `y` or Enter goes on, `n` stops.
 
 5. Secrets
     Private config files live sops-encrypted in the `private/` submodule.

@@ -102,18 +102,31 @@ ring_bell() {
     [[ -t 1 ]] && printf '\a' || :
 }
 
+# Shows a notification. The texts are arguments of the script, not part of its source: a quote in a
+# message cannot end a string and change what the script does. Title and subtitle can be left out.
 notify() {
     local message="${1}" \
-          title="${2}" \
-          sub_title="${3}"
+          title="${2:-}" \
+          sub_title="${3:-}"
 
-    local notification="display notification \"${message}\""
-    [[ -z "${title}" ]] && notification+=" with title \"${title}\""
-    [[ -z "${sub_title}" ]] && notification+=" subtitle \"${sub_title}\""
+    # After --, a text that starts with a dash is not read as an option of osascript.
+    osascript \
+        -e 'on run argv' \
+        -e 'display notification (item 1 of argv) with title (item 2 of argv) subtitle (item 3 of argv) sound name "Crystal"' \
+        -e 'end run' \
+        -- "${message}" "${title}" "${sub_title}"
+}
 
-    notification+=" sound name \"Breeze\""
+# Says the message aloud and waits until it is said. A log message can be passed as it is: its
+# escapes, \n, are read as the logger reads them, and what is not plain text is left out, because
+# say reads the name of an emoji. Does nothing where there is no say command. A say that fails is
+# not an error: speech is decoration.
+speak() {
+    local message="${1}"
 
-    osascript -e "${notification}"
+    is_command "say" || return 0
+
+    printf '%b' "${message}" | LC_ALL=C tr -cd '[:print:][:space:]' | say -v "Cellos" || return 0
 }
 
 url_decode() {

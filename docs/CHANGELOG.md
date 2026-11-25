@@ -90,3 +90,15 @@ All notable changes to this repository. Format: [Keep a Changelog](https://keepa
 - `docs/architecture.md` with the secrets and backup flows. The ssh-restore chart is reduced
   to two questions (right key? safe to install?), uses the default file names (`id_ed25519_sops.age`, `.pub`) and has a
   terminology table.
+
+### Security
+
+- `scripts/secrets.sh` no longer decides by mtime alone. A decrypted copy that differs from its
+  encrypted file and is not newer (a pull, checkout or reset rewrote that file) stops the run:
+  `make decrypt` no longer overwrites it and `make encrypt` no longer skips it. Both name the file
+  and exit 1 after the other files are done. `touch` the copy and `make encrypt` keeps it,
+  `FORCE=1 make decrypt` replaces it. `make encrypt` still needs no private key otherwise.
+  Covered by `tests/secrets.bats` (10 tests) with a sops test double in `tests/mocks/secrets/`.
+
+- The plaintext check in `scripts/secrets.sh` and in the pre-commit guard accepts only the marker
+  sops writes in front of an encrypted value. A plaintext file that contained `"sops"` passed before

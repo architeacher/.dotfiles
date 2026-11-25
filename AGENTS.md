@@ -27,6 +27,8 @@ make encrypt            # private/X/* -> private/X.dist/* (unchanged files skipp
 make hooks              # Enable the plaintext pre-commit guard in private/ (once per clone)
 ```
 
+Both stop on a copy that differs from its encrypted file and is not newer (a pull, checkout or reset rewrote that file). `touch` the copy and `make encrypt` to keep it, `FORCE=1 make decrypt` to replace it.
+
 ### Key Backups
 
 ```bash
@@ -53,8 +55,9 @@ See [docs/architecture.md](docs/architecture.md) for the secrets and backup flow
   - `.ssh/` - SSH configuration
 - `scripts/` - Installation and setup scripts
   - `install.sh` - Main installation orchestrator
-  - `common.sh` - Shared helpers (`is_command`, `abort` via logger, traps)
+  - `common.sh` - Shared helpers (`is_command`, `notify`, `speak`, `abort` via logger, traps)
   - `logger.sh` - Syslog-style logging framework: theme table, palettes (`LOG_PALETTE`), colors (`LOG_COLOR=auto|always|never`, `NO_COLOR`), syntax highlighting
+  - `progress.sh` - Terminal UI for `install.sh`: banner with the block logo (`assets/logo-blocks.txt`) whose letters fall into place like blocks, yes or no question (`progress_confirm`), progress line pinned to the bottom row with the percentage of the steps done (`progress_steps_of <function>`, `progress_run <label> <command>`); animated only when stderr is a terminal
   - `macos.sh` - macOS system defaults
   - `secrets.sh` - sops encrypt/decrypt for `private/`, enables the guard
   - `backup.sh` - Key backup entry point; modules in `backup/` (`common`, `gpg`, `age`, `yubikey`, `ssh`, `verify`, `pack`)
@@ -73,7 +76,7 @@ See [docs/architecture.md](docs/architecture.md) for the secrets and backup flow
 ### Configuration Flow
 
 1. `.envrc` defines environment (GIT_EMAIL, GIT_USER, GITHUB_USERNAME, PASS_PHRASE, PROFILE)
-2. `make install` runs `scripts/install.sh`
+2. `make install` runs `scripts/install.sh`, which asks for confirmation on a terminal
 3. Stow creates symlinks from `stow/` to `~/`
 4. `make decrypt` writes the decrypted secrets the stow symlinks and ssh `Include` point at
 
