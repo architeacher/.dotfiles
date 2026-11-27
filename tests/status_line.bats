@@ -48,11 +48,11 @@ file_mode() {
     done
 }
 
-@test "parse_session: reads token usage and rate limits" {
+@test "parse_session: reads token usage, the window size and rate limits" {
     local cases=(
-        '{"context_window":{"context_window_size":1000000,"current_usage":{"input_tokens":100,"cache_creation_input_tokens":20,"cache_read_input_tokens":3}},"rate_limits":{"five_hour":{"used_percentage":23.5,"resets_at":1738425600},"seven_day":{"used_percentage":41.2,"resets_at":1738857600}}}|123,23.5,1738425600,41.2,1738857600'
-        '{"context_window":{"current_usage":null},"rate_limits":{"seven_day":{"used_percentage":5,"resets_at":1}}}|,,,5,1'
-        '{"context_window":{"current_usage":{"input_tokens":7}}}|7,,,,'
+        '{"context_window":{"context_window_size":1000000,"current_usage":{"input_tokens":100,"cache_creation_input_tokens":20,"cache_read_input_tokens":3}},"rate_limits":{"five_hour":{"used_percentage":23.5,"resets_at":1738425600},"seven_day":{"used_percentage":41.2,"resets_at":1738857600}}}|123,1000000,23.5,1738425600,41.2,1738857600'
+        '{"context_window":{"current_usage":null},"rate_limits":{"seven_day":{"used_percentage":5,"resets_at":1}}}|,,,,5,1'
+        '{"context_window":{"current_usage":{"input_tokens":7}}}|7,,,,,'
     ) \
         entry \
         expected
@@ -61,7 +61,7 @@ file_mode() {
         expected="${entry#*|}"
 
         parse_session "${entry%%|*}"
-        [ "${session_tokens},${session_five_hour},${session_five_hour_reset},${session_seven_day},${session_seven_day_reset}" == "${expected}" ]
+        [ "${session_tokens},${session_window},${session_five_hour},${session_five_hour_reset},${session_seven_day},${session_seven_day_reset}" == "${expected}" ]
     done
 }
 
@@ -90,7 +90,84 @@ file_mode() {
     done
 }
 
-# --- format_os --------------------------------------------------------------
+@test "parse_session: reads the session duration, empty when the JSON has none" {
+    local cases=(
+        '{"cost":{"total_cost_usd":1,"total_duration_ms":527000}}|527000'
+        '{"cost":{"total_cost_usd":1}}|'
+        '{}|'
+    ) \
+        entry
+
+    for entry in "${cases[@]}"; do
+        parse_session "${entry%%|*}"
+        [ "${session_duration}" == "${entry#*|}" ]
+    done
+}
+
+# --- paint / block ----------------------------------------------------------
+
+@test "paint: puts SGR attributes ahead of the color" {
+    unset NO_COLOR
+    local cases=(
+        "|"$'\033[38;2;1;2;3mx\033[0m'
+        "${bold}|"$'\033[1;38;2;1;2;3mx\033[0m'
+        "${italic}|"$'\033[3;38;2;1;2;3mx\033[0m'
+    ) \
+        entry
+
+    for entry in "${cases[@]}"; do
+        run paint "1;2;3" "x" "${entry%%|*}"
+        [ "${status}" -eq 0 ]
+        [ "${output}" == "${entry#*|}" ]
+    done
+}
+
+@test "block: pads the text on a solid background, in one SGR sequence" {
+    unset NO_COLOR
+    local cases=(
+        "|"$'\033[48;2;4;5;6;38;2;1;2;3m x \033[0m'
+        "${bold}|"$'\033[1;48;2;4;5;6;38;2;1;2;3m x \033[0m'
+    ) \
+        entry
+
+    for entry in "${cases[@]}"; do
+        run block "4;5;6" "1;2;3" "${entry%%|*}" "x"
+        [ "${status}" -eq 0 ]
+        [ "${output}" == "${entry#*|}" ]
+    done
+}
+
+@test "paint, block: print the same text without colors under NO_COLOR" {
+    run paint "1;2;3" "x" "${bold}"
+    [ "${output}" == "x" ]
+
+    run block "4;5;6" "1;2;3" "${bold}" "x"
+    [ "${output}" == " x " ]
+}
+
+@test "styles: every restyled segment has its own colors and attributes" {
+    unset NO_COLOR
+    local head=$'# branch.oid 0123456789abcdef\n# branch.head ' \
+          cases \
+          entry
+
+    cases=(
+        "$(USER=me OSTYPE=darwin24 format_user)|$(block "${navy}" "${text}" "${bold}" "${icon_apple} me")"
+        "$(format_directory "/usr/local" "/home/me")|$(block "${steel}" "${text}" "" "${icon_folder} /usr/local")"
+        "$(format_git_head "${head}main")|$(block "${teal}" "${crust}" "${italic}" "${icon_branch} main")"
+        "$(format_git_head "${head}(detached)")|$(block "${peach}" "${crust}" "${italic}" "${icon_commit} 0123456")"
+        "$(format_model "Opus")|$(block "${royal}" "${pearl}" "${bold}" "${icon_model} Opus")"
+        "$(format_effort "low")|$(block "${ocean}" "${ice}" "${bold}" "${icon_effort} low")"
+        "$(format_cost "0.42")|$(paint "${yellow}" "${icon_cost} \$0.42")"
+        "$(format_duration "527000")|$(block "${umber}" "${salmon}" "" "${icon_duration} 8m 47s")"
+    )
+
+    for entry in "${cases[@]}"; do
+        [ "${entry%%|*}" == "${entry#*|}" ]
+    done
+}
+
+# --- format_os / format_user ------------------------------------------------
 
 @test "format_os: picks the icon from OSTYPE" {
     local cases=(
@@ -107,15 +184,26 @@ file_mode() {
     done
 }
 
+@test "format_user: shows the OS icon and the user in one block" {
+    USER=me OSTYPE=darwin24 run format_user
+
+    [ "${status}" -eq 0 ]
+    [ "${output}" == " ${icon_apple} me " ]
+}
+
 # --- format_directory -------------------------------------------------------
 
 @test "format_directory: replaces home and shortens long paths" {
     local cases=(
         "/home/me|${icon_folder} ${icon_home} ~"
         "/home/me/code|${icon_folder} ${icon_home} ~/code"
+        "/home/me/a/b|${icon_folder} ${icon_home} ~/a/b"
+        "/home/me/a/b/c|${icon_folder} …/a/b/c"
         "/home/me/a/b/c/d|${icon_folder} …/b/c/d"
         "/home/meow/x|${icon_folder} /home/meow/x"
         "/usr/local|${icon_folder} /usr/local"
+        "/usr/local/share|${icon_folder} /usr/local/share"
+        "/usr/local/share/man|${icon_folder} …/local/share/man"
         "/usr/local/share/man/man1|${icon_folder} …/share/man/man1"
     ) \
         entry \
@@ -126,7 +214,7 @@ file_mode() {
 
         run format_directory "${entry%%|*}" "/home/me"
         [ "${status}" -eq 0 ]
-        [ "${output}" == "${expected}" ]
+        [ "${output}" == " ${expected} " ]
     done
 }
 
@@ -151,9 +239,12 @@ file_mode() {
     done
 }
 
-@test "format_git_head: shows the branch, or the short commit when detached" {
+@test "format_git_head: shows the branch, cut when longer than 18 characters, or the short commit when detached" {
     local cases=(
         $'# branch.oid 0123456789abcdef\n# branch.head main|'"${icon_branch} main"
+        $'# branch.oid 0123456789abcdef\n# branch.head chore/status-line1|'"${icon_branch} chore/status-line1"
+        $'# branch.oid 0123456789abcdef\n# branch.head chore/status-line12|'"${icon_branch} chore/status-line…"
+        $'# branch.oid 0123456789abcdef\n# branch.head chore/enhancing-claude-status-line|'"${icon_branch} chore/enhancing-c…"
         $'# branch.oid 0123456789abcdef\n# branch.head (detached)|'"${icon_commit} 0123456"
     ) \
         entry
@@ -161,7 +252,7 @@ file_mode() {
     for entry in "${cases[@]}"; do
         run format_git_head "${entry%|*}"
         [ "${status}" -eq 0 ]
-        [ "${output}" == "${entry##*|}" ]
+        [ "${output}" == " ${entry##*|} " ]
     done
 }
 
@@ -203,7 +294,7 @@ file_mode() {
 
     run format_git "${repo}"
     [ "${status}" -eq 0 ]
-    [ "${output}" == "${icon_branch} trunk ${icon_untracked} 1" ]
+    [ "${output}" == " ${icon_branch} trunk  ${icon_untracked} 1" ]
     [ "$(rg -c '^git ' "${TEST_DIR}/calls")" -eq 1 ]
 }
 
@@ -215,7 +306,7 @@ file_mode() {
 
     run format_git "${TEST_DIR}"
     [ "${status}" -eq 0 ]
-    [ "${output}" == "${icon_commit} $(git -C "${TEST_DIR}" rev-parse --short=7 HEAD)" ]
+    [ "${output}" == " ${icon_commit} $(git -C "${TEST_DIR}" rev-parse --short=7 HEAD) " ]
 }
 
 # --- format_languages -------------------------------------------------------
@@ -344,9 +435,9 @@ file_mode() {
 
 @test "format_cost: rounds to cents and hides when missing" {
     local cases=(
-        "0.01234|\$0.01"
-        "1|\$1.00"
-        "12.345|\$12.35"
+        "0.01234|${icon_cost} \$0.01"
+        "1|${icon_cost} \$1.00"
+        "12.345|${icon_cost} \$12.35"
         "|"
     ) \
         entry \
@@ -363,7 +454,7 @@ file_mode() {
 
 @test "format_model: shows the model name when present" {
     run format_model "Opus"
-    [ "${output}" == "${icon_model} Opus" ]
+    [ "${output}" == " ${icon_model} Opus " ]
 
     run format_model ""
     [ -z "${output}" ]
@@ -371,19 +462,106 @@ file_mode() {
 
 @test "format_effort: shows the effort level when present" {
     run format_effort "high"
-    [ "${output}" == "high" ]
+    [ "${output}" == " ${icon_effort} high " ]
 
     run format_effort ""
     [ -z "${output}" ]
 }
 
-# --- format_context ---------------------------------------------------------
-
-@test "format_context: colors by percentage when token usage is unknown" {
+@test "format_effort: colors the block by level, an unknown level looks like low" {
     unset NO_COLOR
     local cases=(
-        "0|${green}"
-        "49.9|${green}"
+        "max|${magenta}|${chalk}"
+        "xhigh|${indigo}|${white}"
+        "high|${coral}|${white}"
+        "medium|${butter}|${black}"
+        "low|${ocean}|${ice}"
+        "auto|${ocean}|${ice}"
+    ) \
+        entry \
+        level \
+        background \
+        foreground
+
+    for entry in "${cases[@]}"; do
+        IFS='|' read -r level background foreground <<< "${entry}"
+
+        run format_effort "${level}"
+        [ "${status}" -eq 0 ]
+        [ "${output}" == "$(block "${background}" "${foreground}" "${bold}" "${icon_effort} ${level}")" ]
+    done
+}
+
+@test "format_time: shows the clock in its own block" {
+    local clock_pattern="^ ${icon_clock} [0-9]{2}:[0-9]{2} $"
+
+    run format_time
+    [ "${status}" -eq 0 ]
+    [[ "${output}" =~ ${clock_pattern} ]]
+
+    unset NO_COLOR
+
+    run format_time
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == $'\033[48;2;'"${dusk};38;2;${orchid}m ${icon_clock} "* ]]
+}
+
+@test "format_elapsed: prints milliseconds as seconds, minutes or hours, nothing below a second" {
+    local cases=(
+        "0|"
+        "999|"
+        "1000|1s"
+        "47000|47s"
+        "60000|1m 0s"
+        "527000|8m 47s"
+        "527000.7|8m 47s"
+        "3599999|59m 59s"
+        "3600000|1h 0m"
+        "7500000|2h 5m"
+        "abc|"
+        "null|"
+        "|"
+    ) \
+        entry
+
+    for entry in "${cases[@]}"; do
+        run format_elapsed "${entry%%|*}"
+        [ "${status}" -eq 0 ]
+        [ "${output}" == "${entry#*|}" ]
+    done
+}
+
+@test "format_duration: shows the session time in a block, hides when unknown or zero" {
+    local cases=(
+        "527000| ${icon_duration} 8m 47s "
+        "0|"
+        "|"
+    ) \
+        entry
+
+    for entry in "${cases[@]}"; do
+        run format_duration "${entry%%|*}"
+        [ "${status}" -eq 0 ]
+        [ "${output}" == "${entry#*|}" ]
+    done
+}
+
+# --- format_context ---------------------------------------------------------
+
+# Prints the colored start of the context segment: the icon and the bar, both in the level color.
+context_start() {
+    local percent="${1}" \
+          color="${2}"
+
+    printf '%s %s ' "$(paint "${color}" "${icon_context}")" \
+        "$(build_bar "${percent}" "${color}" "${slab_filled}" "${slab_empty}" "${color}")"
+}
+
+@test "format_context: colors the icon and the bar by percentage" {
+    unset NO_COLOR
+    local cases=(
+        "0|${cyan}"
+        "49.9|${cyan}"
         "50|${yellow}"
         "74|${yellow}"
         "75|${peach}"
@@ -392,57 +570,60 @@ file_mode() {
         "100|${red}"
     ) \
         entry \
-        value \
-        expected
+        value
 
     for entry in "${cases[@]}"; do
         value="${entry%%|*}"
-        expected="$(paint "${entry#*|}" "${icon_context} ${value%%.*}%")"
 
         run format_context "${value}"
         [ "${status}" -eq 0 ]
-        [ "${output}" == "${expected}" ]
+        [[ "${output}" == "$(context_start "${value}" "${entry#*|}")"* ]]
     done
 }
 
-@test "format_context: colors by absolute tokens, so a 1M window warns as early as 200K" {
+@test "format_context: colors by the percentage, however many tokens the window holds" {
     unset NO_COLOR
-    local cases=(
-        "$((context_tokens_warning - 1))|${green}"
-        "${context_tokens_warning}|${yellow}"
-        "${context_tokens_high}|${peach}"
-        "${context_tokens_critical}|${red}"
-    ) \
-        entry \
-        expected
 
-    for entry in "${cases[@]}"; do
-        expected="$(paint "${entry#*|}" "${icon_context} 1% $(format_tokens "${entry%%|*}")")"
-
-        run format_context "1" "${entry%%|*}"
-        [ "${status}" -eq 0 ]
-        [ "${output}" == "${expected}" ]
-    done
+    run format_context "38" "388000" "1000000"
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == "$(context_start "38" "${cyan}")"* ]]
 }
 
-@test "format_context: picks the worse of the token and the percentage level" {
+@test "format_context: prints the percentage bold and the tokens dimmed" {
     unset NO_COLOR
+
+    run format_context "42" "84320" "200000"
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *" $(paint "${text}" "$(format_percent 42 84320 200000)%" "${bold}") $(paint "${overlay}" "84K")" ]]
+}
+
+@test "format_percent: derives one decimal from the tokens and the window size, else keeps the rounded percentage" {
     local cases=(
-        "95|1000|${red}"
-        "60|${context_tokens_high}|${peach}"
-        "10|${context_tokens_critical}|${red}"
+        "47|94400|200000|47.2"
+        "0|0|200000|0.0"
+        "1|8000|1000000|0.8"
+        "1|8499|1000000|0.8"
+        "1|8500|1000000|0.9"
+        "48|95900|200000|48.0"
+        "100|200000|200000|100.0"
+        "47||200000|47"
+        "47|null|200000|47"
+        "47|94400||47"
+        "47|94400|null|47"
+        "47|94400|0|47"
     ) \
         entry \
         percent \
-        rest
+        tokens \
+        window \
+        expected
 
     for entry in "${cases[@]}"; do
-        percent="${entry%%|*}"
-        rest="${entry#*|}"
+        IFS='|' read -r percent tokens window expected <<< "${entry}"
 
-        run format_context "${percent}" "${rest%%|*}"
+        run format_percent "${percent}" "${tokens}" "${window}"
         [ "${status}" -eq 0 ]
-        [ "${output}" == "$(paint "${rest#*|}" "${icon_context} ${percent}% $(format_tokens "${rest%%|*}")")" ]
+        [ "${output}" == "${expected}" ]
     done
 }
 
@@ -471,20 +652,26 @@ file_mode() {
     done
 }
 
-@test "format_context: shows the context tokens after the percentage, only when known" {
+@test "format_context: shows the bar, the percentage and the tokens, the tokens only when known" {
     local cases=(
-        "42|84320|${icon_context} 42% 84K"
-        "42||${icon_context} 42%"
-        "42|null|${icon_context} 42%"
+        "42|84320|200000|${icon_context} ▰▰▰▰▱▱▱▱▱▱ $(format_percent 42 84320 200000)% 84K"
+        "42.7|84320|200000|${icon_context} ▰▰▰▰▱▱▱▱▱▱ $(format_percent 42 84320 200000)% 84K"
+        "42|||${icon_context} ▰▰▰▰▱▱▱▱▱▱ $(format_percent 42 "" "")%"
+        "42|null||${icon_context} ▰▰▰▰▱▱▱▱▱▱ $(format_percent 42 null "")%"
+        "100|||${icon_context} ▰▰▰▰▰▰▰▰▰▰ $(format_percent 100 "" "")%"
     ) \
         entry \
-        rest
+        percent \
+        tokens \
+        window \
+        expected
 
     for entry in "${cases[@]}"; do
-        rest="${entry#*|}"
+        IFS='|' read -r percent tokens window expected <<< "${entry}"
 
-        run format_context "${entry%%|*}" "${rest%%|*}"
-        [ "${output}" == "${rest#*|}" ]
+        run format_context "${percent}" "${tokens}" "${window}"
+        [ "${status}" -eq 0 ]
+        [ "${output}" == "${expected}" ]
     done
 }
 
@@ -514,10 +701,18 @@ file_mode() {
         entry
 
     for entry in "${cases[@]}"; do
-        run build_bar "${entry%%|*}" "${green}"
+        run build_bar "${entry%%|*}" "${green}" "${dot_filled}" "${dot_empty}" "${overlay}"
         [ "${status}" -eq 0 ]
         [ "${output}" == "${entry#*|}" ]
     done
+}
+
+@test "build_bar: draws the given glyphs, the empty ones in their own color" {
+    unset NO_COLOR
+
+    run build_bar "30" "${green}" "${wave_filled}" "${wave_empty}" "${red}"
+    [ "${status}" -eq 0 ]
+    [ "${output}" == "$(paint "${green}" "≋≋≋")$(paint "${red}" "·······")" ]
 }
 
 @test "format_countdown: prints the time left until a reset" {
@@ -547,26 +742,73 @@ file_mode() {
     [ "${output}" == "Thu 00:00" ]
 }
 
-@test "format_rate_limit: shows a meter, hides when the window is missing" {
-    run format_rate_limit "5h" "23.5" "1h 38m"
-    [ "${output}" == "5h ●●○○○○○○○○ 23% ${icon_reset} 1h 38m" ]
+@test "format_five_hour, format_seven_day: show a meter, hide when the window is missing" {
+    local cases=(
+        "format_five_hour|23.5|1h 38m|5h ●●○○○○○○○○ 23% ${icon_reset} 1h 38m"
+        "format_five_hour|41||5h ●●●●○○○○○○ 41%"
+        "format_five_hour||1h|"
+        "format_seven_day|32.9|Thu 09:00|7d [≋≋≋·······] 32% ${icon_reset} Thu 09:00"
+        "format_seven_day|41||7d [≋≋≋≋······] 41%"
+        "format_seven_day|100||7d [≋≋≋≋≋≋≋≋≋≋] 100%"
+        "format_seven_day||Thu 09:00|"
+    ) \
+        entry \
+        formatter \
+        percent \
+        reset \
+        expected
 
-    run format_rate_limit "7d" "41" ""
-    [ "${output}" == "7d ●●●●○○○○○○ 41%" ]
+    for entry in "${cases[@]}"; do
+        IFS='|' read -r formatter percent reset expected <<< "${entry}"
 
-    run format_rate_limit "7d" "" "1h"
-    [ -z "${output}" ]
+        run "${formatter}" "${percent}" "${reset}"
+        [ "${status}" -eq 0 ]
+        [ "${output}" == "${expected}" ]
+    done
+}
+
+@test "rate limits: the labels 5h and 7d keep the text color" {
+    unset NO_COLOR
+    local cases=(
+        "$(format_five_hour "23" "")|5h"
+        "$(format_seven_day "32" "")|7d"
+    ) \
+        entry
+
+    for entry in "${cases[@]}"; do
+        [[ "${entry%%|*}" == "$(paint "${text}" "${entry#*|}") "* ]]
+    done
+}
+
+@test "rate limits: 5h dims the unused dots, 7d draws its whole meter in one color" {
+    unset NO_COLOR
+    local cases=(
+        "$(format_five_hour "23" "")|$(paint "${green}" "●●")$(paint "${overlay}" "○○○○○○○○") $(paint "${green}" "23%")"
+        "$(format_five_hour "80" "")|$(paint "${peach}" "●●●●●●●●")$(paint "${overlay}" "○○") $(paint "${peach}" "80%")"
+        "$(format_seven_day "32" "")|$(paint "${aqua}" "[")$(paint "${aqua}" "≋≋≋")$(paint "${aqua}" "·······")$(paint "${aqua}" "]") $(paint "${azure}" "32%")"
+        "$(format_seven_day "80" "")|$(paint "${peach}" "[")$(paint "${peach}" "≋≋≋≋≋≋≋≋")$(paint "${peach}" "··")$(paint "${peach}" "]") $(paint "${peach}" "80%")"
+    ) \
+        entry
+
+    for entry in "${cases[@]}"; do
+        [[ "${entry%%|*}" == *" ${entry#*|}" ]]
+    done
 }
 
 # --- visible_width / align_line / join_segments -----------------------------
 
-@test "visible_width: counts cells, not bytes or color codes" {
+@test "visible_width: counts cells, not bytes or color codes, and two cells for an emoji" {
     unset NO_COLOR
     local cases=(
         "abc|3"
         "$(paint "${blue}" "abc")|3"
         "${icon_branch} main|6"
-        "$(paint "${mauve}" "${icon_model} Opus")$(paint "${text}" " …")|8"
+        "$(paint "${mauve}" "${icon_model} Opus")$(paint "${text}" " …")|9"
+        "$(block "${navy}" "${text}" "${bold}" "${icon_apple} me")|6"
+        "${icon_context} ▰▱ [≋·] ${icon_effort}|13"
+        "${icon_duration} 8m 47s|9"
+        "${icon_cost} \$0.42|8"
+        "${icon_model}${icon_model}|4"
         "|0"
     ) \
         entry
@@ -581,6 +823,8 @@ file_mode() {
 @test "align_line: pushes the right side to the terminal edge" {
     local cases=(
         "20|left${icon_clock}|right|left${icon_clock}      right"
+        "20||right|           right"
+        "20|left||left"
         "10|left|right|left   right"
         "|left|right|left   right"
         "abc|left|right|left   right"
@@ -604,6 +848,28 @@ file_mode() {
     done
 }
 
+@test "build_right: joins the blocks without a gap, the memory warning sits before the clock" {
+    local cases=(
+        "40| ${icon_duration} 8m 47s  ${icon_model} Opus  ${icon_effort} high  ${icon_clock} "
+        "91| ${icon_duration} 8m 47s  ${icon_model} Opus  ${icon_effort} high  ${icon_memory} 91%  ${icon_clock} "
+    ) \
+        entry \
+        memory_stub
+
+    memory_percent() { printf '%s' "${memory_stub}"; }
+    session_duration="527000"
+    session_model="Opus"
+    session_effort="high"
+
+    for entry in "${cases[@]}"; do
+        memory_stub="${entry%%|*}"
+
+        run build_right
+        [ "${status}" -eq 0 ]
+        [[ "${output}" == "${entry#*|}"* ]]
+    done
+}
+
 @test "join_segments: skips empty segments" {
     run join_segments "a" "" "b" "" "c"
     [ "${output}" == "a b c" ]
@@ -614,42 +880,58 @@ file_mode() {
 
 # --- main -------------------------------------------------------------------
 
-@test "main: renders the model from stdin JSON" {
-    run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"model\":{\"display_name\":\"Opus\"}}' \
+@test "main: renders the model on a single line while the context is unknown, whatever the cost" {
+    run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"model\":{\"display_name\":\"Opus\"},\"cost\":{\"total_cost_usd\":0.42}}' \
         | NO_COLOR=1 '${BATS_TEST_DIRNAME}/../stow/.config/claude/status_line.sh'"
 
     [ "${status}" -eq 0 ]
-    [[ "${output}" == *"${icon_model} Opus"* ]]
+    [[ "${output}" == *" ${icon_model} Opus "* ]]
     [ "${#lines[@]}" -eq 1 ]
 }
 
-@test "main: renders the effort level next to the model" {
-    run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"model\":{\"display_name\":\"Opus\"},\"effort\":{\"level\":\"high\"}}' \
+@test "main: puts the session time, the model and the effort level side by side" {
+    run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"model\":{\"display_name\":\"Opus\"},\"effort\":{\"level\":\"high\"},\"cost\":{\"total_duration_ms\":527000}}' \
         | NO_COLOR=1 '${BATS_TEST_DIRNAME}/../stow/.config/claude/status_line.sh'"
 
     [ "${status}" -eq 0 ]
-    [[ "${output}" == *"${icon_model} Opus high"* ]]
+    [[ "${output}" == *" ${icon_duration} 8m 47s  ${icon_model} Opus  ${icon_effort} high "* ]]
 }
 
-@test "main: adds a rate-limit line only when the JSON has rate_limits" {
+@test "main: adds the rate limits to the second line only when the JSON has rate_limits" {
     run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"rate_limits\":{\"five_hour\":{\"used_percentage\":23,\"resets_at\":4102444800},\"seven_day\":{\"used_percentage\":41,\"resets_at\":4102444800}}}' \
         | NO_COLOR=1 '${BATS_TEST_DIRNAME}/../stow/.config/claude/status_line.sh'"
 
     [ "${status}" -eq 0 ]
     [ "${#lines[@]}" -eq 2 ]
     [[ "${lines[1]}" == "5h ●●○○○○○○○○ 23% "* ]]
-    [[ "${lines[1]}" == *"7d ●●●●○○○○○○ 41% "* ]]
+    [[ "${lines[1]}" == *"7d [≋≋≋≋······] 41% "* ]]
 }
 
-@test "main: prints only BMP characters, JediTerm garbles anything above U+FFFF" {
+@test "main: aligns the context and the cost on the second line, also without rate limits" {
+    unset NO_COLOR
+
+    run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"model\":{\"display_name\":\"Opus\"},\"context_window\":{\"used_percentage\":42},\"cost\":{\"total_cost_usd\":0.42}}' \
+        | COLUMNS=120 '${BATS_TEST_DIRNAME}/../stow/.config/claude/status_line.sh'"
+
+    [ "${status}" -eq 0 ]
+    [ "${#lines[@]}" -eq 2 ]
+    [[ "${lines[0]}" != *'$0.42'* ]]
+    [[ "${lines[1]}" == *"$(paint "${yellow}" "${icon_cost} \$0.42")" ]]
+    [ "$(visible_width "${lines[0]}")" -eq "$((120 - right_margin))" ]
+    [ "$(visible_width "${lines[1]}")" -eq "$((120 - right_margin))" ]
+}
+
+@test "main: prints no private-use glyph above U+FFFF, JediTerm draws those at another width" {
     touch "${TEST_DIR}/composer.json" "${TEST_DIR}/package.json"
 
-    run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"model\":{\"display_name\":\"Opus\"},\"context_window\":{\"used_percentage\":42},\"cost\":{\"total_cost_usd\":1.5},\"rate_limits\":{\"five_hour\":{\"used_percentage\":23,\"resets_at\":4102444800}}}' \
+    run bash -c "printf '%s' '{\"workspace\":{\"current_dir\":\"${TEST_DIR}\"},\"model\":{\"display_name\":\"Opus\"},\"effort\":{\"level\":\"high\"},\"context_window\":{\"used_percentage\":42},\"cost\":{\"total_cost_usd\":1.5,\"total_duration_ms\":527000},\"rate_limits\":{\"five_hour\":{\"used_percentage\":23,\"resets_at\":4102444800},\"seven_day\":{\"used_percentage\":41,\"resets_at\":4102444800}}}' \
         | '${BATS_TEST_DIRNAME}/../stow/.config/claude/status_line.sh'"
 
     [ "${status}" -eq 0 ]
-    [[ "${output}" == *"${icon_context} 42%"* ]]
+    [[ "${output}" == *"${icon_context} ▰▰▰▰▱▱▱▱▱▱ 42"* ]]
+    [[ "${output}" == *"${icon_effort} high"* ]]
+    [[ "${output}" == *"${icon_duration} 8m 47s"* ]]
 
-    run rg -q '[\x{10000}-\x{10FFFF}]' <<< "${output}"
+    run rg -q '[\x{F0000}-\x{10FFFF}]' <<< "${output}"
     [ "${status}" -eq 1 ]
 }
