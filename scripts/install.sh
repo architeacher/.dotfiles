@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/progress.sh"
 
 cleanup_list=()
 exit_status=0
@@ -221,6 +222,38 @@ start_services() {
     run_cmd skhd --start-service
 }
 
+# stow adopts: a real file in the home dir moves over the package file. Over a tracked link
+# that would put what the link points at, a decrypted secret, into this repository as plaintext.
+# Fails when it cannot tell, so a caller never adopts unchecked.
+refuse_adopting_over_links() {
+    local package="${1#./}" \
+          entry \
+          file \
+          path \
+          blocked=0
+
+    package="${package%/}"
+
+    git ls-files -s -z -- "${package}" > /dev/null || {
+        log_error "Cannot list the tracked files under ${package:-<empty>}, so nothing is stowed."
+
+        return 1
+    }
+
+    while IFS= read -r -d '' entry; do
+        [[ "${entry}" == 120000* ]] || continue
+
+        file="${entry#*$'\t'}"
+        path="${HOME}/${file#"${package}/"}"
+        [[ -e "${path}" && ! -L "${path}" ]] || continue
+
+        log_error "${path} is not a link, but the repository has a link there. Move it to where that link points."
+        blocked=1
+    done < <(git ls-files -s -z -- "${package}")
+
+    [[ "${blocked}" -eq 0 ]]
+}
+
 stow_config() {
     local dir="${1:-./stow/config}"
 
@@ -233,6 +266,7 @@ stow_config() {
 
     log_info "Stowing files under ${dir} directory."
 
+    refuse_adopting_over_links "${dir}" || return 1
     run_cmd stow --adopt "${dir}"
 }
 
@@ -246,14 +280,16 @@ usage() {
 
     cat <<HELP
 ${this}: install Mac software for the first time
-Usage: ${this} [-e] environment file path [-d] disabled packages [-f] disabled file [-n] dry run [-h] help [-l] log level [-x] verbose mode
-    -e sets the environment file path.
+Usage: ${this} [-e] environment file path [-d] disabled packages [-f] disabled file [-n] dry run [-y] assume yes [-h] help [-l] log level [-x] verbose mode
     -d comma list of packages to skip, e.g. git,k9s.
+    -e sets the environment file path.
     -f global file with one package per line to skip.
-    -n dry run, prints actions without running them.
     -h to get help about the usage.
     -l sets the log priority: 2 => critical, 3 => error, 6 => info, 7 => debug.
+    -n dry run, prints actions without running them.
+    -p to set installation profile, e.g. private, work
     -x to see the executed statements.
+    -y installs without asking for confirmation.
 HELP
 
     exit 0
@@ -267,6 +303,7 @@ init_defaults() {
     : "${DISABLED_PACKAGES:=}"
     : "${DISABLED_FILE:=}"
     : "${DRY_RUN:=false}"
+    : "${ASSUME_YES:=false}"
     : "${LOG_LEVEL:=${_log_level}}"
 }
 
@@ -274,16 +311,17 @@ parse_args() {
     init_defaults
 
     local arg
-    while getopts "e:l:p:d:f:nh?x" arg; do
+    while getopts "e:l:p:d:f:nyh?x" arg; do
         case "${arg}" in
-            e) ENV_FILE="${OPTARG}" ;;
-            l) LOG_LEVEL="${OPTARG}" ;;
-            p) PROFILE="${OPTARG}" ;;
             d) DISABLED_PACKAGES="${OPTARG}" ;;
+            e) ENV_FILE="${OPTARG}" ;;
             f) DISABLED_FILE="${OPTARG}" ;;
+            l) LOG_LEVEL="${OPTARG}" ;;
             n) DRY_RUN="true" ;;
+            p) PROFILE="${OPTARG}" ;;
             h | \?) usage "${0}" ;;
             x) set -x ;;
+            y) ASSUME_YES="true" ;;
         esac
     done
     shift $((OPTIND - 1))
@@ -315,29 +353,35 @@ at_exit() {
           ret="${2}" \
           line_no="${3:-}" \
           cmd="${4:-}" \
-          stack_trace="${5:-}"
+          stack_trace="${5:-}" \
+          success="\n✨ Congratulations, you can now chillax!"
 
     case "${signal}" in
         ERR)
+            # No progress_stop: under errtrace ERR also fires in a subshell, which must not end the parent's line.
             log_error "Command failed (exit ${ret}) at line ${line_no}: ${LOG_CODE}${cmd}${LOG_CODE}\n Stack trace:\n${stack_trace}"
             exit_status="${ret}"
 
             return
         ;;
         INT | TERM | QUIT)
+            progress_stop
             log_critical "\n🦇 Bat luck out there!\n😥 Try hard next time."
             exit_status=1
         ;;
         EXIT)
+            progress_stop
             script_cleanup
             [[ "${ret}" == 0 ]] && {
-                log_info "\n✨ Congratulations, you can now chillax!\n😎 May the odds be in your favour."
+                log_info "${success}\n😎 May the odds be in your favour."
+                speak "${success}"
             }
         ;;
     esac
 
     run_cmd ring_bell
-    run_cmd notify "Installation is finished with status: ${exit_status}" "install.sh" "at_exit callback"
+    run_cmd sleep 0.8
+    run_cmd notify "🎉 Installation is finished with status: ${exit_status}" "install.sh" "at_exit callback"
 
     exit "${exit_status}"
 }
@@ -352,10 +396,17 @@ print_config() {
     log_info "  DISABLED_FILE=${DISABLED_FILE:-./stow/.install-global-disabled}"
 }
 
+# Asks on a terminal before anything is installed, unless -y said yes already. True to go on.
+confirm_install() {
+    [[ "${ASSUME_YES}" != "true" ]] || return 0
+
+    progress_confirm "Choose an action:" "Install .dotfiles" "Do nothing"
+}
+
 prepare() {
     # @see: scripts/common.sh
     validate_bash
-    trap_with_arg at_exit ERR EXIT INT QUIT TERM
+    trap_with_arg at_exit ERR
 
     parse_args "$@"
     validate_args
@@ -364,8 +415,21 @@ prepare() {
     include_env_vars "${ENV_FILE}"
     declare_global_vars
 
-    create_dirs
+    progress_banner "./assets/logo-blocks.txt" ".dotfiles Installer" "Install Mac software for the first time"
+
+    # A no ends the run here: main stays the plain sequence of its steps.
+    confirm_install || {
+        log_notice "Nothing installed."
+
+        exit 0
+    }
+
+    # Nothing is printed about the run or created before the answer is yes.
     print_config
+    create_dirs
+
+    # Only from here on is there something to clean up and a result to announce.
+    trap_with_arg at_exit EXIT INT QUIT TERM
 }
 
 # Package directory: whatever directly contains scripts/install.sh,
@@ -438,17 +502,20 @@ run_installers() {
 }
 
 install() {
-    install_home_brew
-    install_home_brew_deps "./stow/.config/homebrew"
+    # One step for each progress_run call below: the progress line shows the share that is done.
+    progress_steps_of install
+
+    progress_run "Homebrew" install_home_brew
+    progress_run "Homebrew packages" install_home_brew_deps "./stow/.config/homebrew"
 
     # Stowing is necessary here, for the bat theme config file.
-    stow_config "./stow"
+    progress_run "Stow" stow_config "./stow"
 
     # shellcheck disable=SC2119
-    run_installers "./stow"
+    progress_run "Package installers" run_installers "./stow"
 
-    install_apps_themes
-    enable_touch_id_sudo
+    progress_run "Themes" install_apps_themes
+    progress_run "Touch ID for sudo" enable_touch_id_sudo
 }
 
 main() {

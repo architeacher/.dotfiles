@@ -97,3 +97,4 @@
 ## General
 - [SHOULD] Use `rg` instead of `grep` and `fd` instead of `find`
 - [SHOULD] Target OS: macOS unless stated otherwise
+- [MUST] Run builds, tests, and linters inside the project's containers first; fall back to the host only when the tool is not in the container (language runtimes such as php, composer, node, go, python are usually not installed on the host)

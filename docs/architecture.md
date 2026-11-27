@@ -29,13 +29,37 @@ flowchart LR
 | Piece | Role |
 |---|---|
 | `.sops.yaml` | creation rules and key groups for the encrypted files |
-| `scripts/secrets.sh` | `encrypt` / `decrypt` / `hooks`; skips unchanged files, keeps newer local edits |
+| `scripts/secrets.sh` | `encrypt` / `decrypt` / `hooks`; skips files in sync, keeps newer local edits, stops when only you can decide |
 | `private/.gitignore` | allowlist: only `*.dist/**`, `.gitignore`, `.githooks/` |
 | `private/.githooks/pre-commit` | refuses staged files outside `*.dist/` and plaintext inside it |
 
-Unchanged detection uses mtimes: after every encrypt or decrypt, the decrypted
-copy gets the encrypted file's mtime, so "edited" means "newer than its `.dist`".
-That avoids decrypting (YubiKey touch + ssh key) just to compare.
+### How `encrypt` and `decrypt` decide
+
+Every secret exists twice: the encrypted version, which git tracks, and the readable decrypted version,
+which git ignores. Neither command may silently overwrite a change in the other version, so
+the script has to know which version changed.
+
+Reading an encrypted file needs your keys (YubiKey touch + ssh key). To avoid that on every
+run, the script gives both files the same file time when it finishes. On the next run the
+times show what happened in between:
+
+| Decrypted version | What happened | `make encrypt` | `make decrypt` |
+|---|---|---|---|
+| has the same time | nothing | skips the file | nothing to do |
+| is newer | the decrypted version was edited| writes it into the encrypted version | keeps the edit |
+| is older, same content | git rewrote the encrypted file (pull, checkout, reset), the secret is the same | nothing: both get the same time again | nothing: both get the same time again |
+| is older, other content | git rewrote the encrypted file and the two versions disagree | stops on that file | stops on that file |
+| is missing | new machine, or a new secret from git | - | writes the decrypted version |
+
+The two "is older" rows are the one case where `make encrypt` needs the keys: the times
+cannot tell whether the decrypted version is only outdated or holds an edit that was never
+encrypted, so the script reads the encrypted file and compares.
+
+A stop changes no file. The script names the file, finishes the other files and exits 1,
+because only you know which version is right:
+
+- to keep the decrypted version: `touch` it, then `make encrypt`
+- to take the version from git: `FORCE=1 make decrypt`
 
 ## Key backups
 

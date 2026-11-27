@@ -40,7 +40,7 @@ sel-install: ## to select and run a function from an installation file; prompts 
 
 .PHONY: stow
 stow: ## to stow files under stow directory.
-	stow -v --adopt stow
+	. scripts/install.sh && refuse_adopting_over_links stow && stow -v --adopt stow
 
 .PHONY: unstow
 unstow: ## to un-stow files under stow directory.

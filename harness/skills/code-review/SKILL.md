@@ -47,10 +47,12 @@ Also invoke it when:
 
 ## How to orchestrate
 
-The `code-reviewer` agent owns how to review: the blocking bar, evidence rules, and output format. The checks live
-in `${CLAUDE_CONFIG_DIR:-$HOME/.config/claude}/recipes/code-review.standards.md`, which the agent loads itself. Each
-step below names the Focus to dispatch; every Focus except `Acceptance Criteria` is a `##` section of that file. The
-reviewer never sees this file.
+The `code-reviewer` agent owns how to review: the blocking bar and the evidence rules. The checks live in
+`${CLAUDE_CONFIG_DIR:-$HOME/.config/claude}/recipes/code-review.standards.md`, which the agent loads itself. The
+report layout lives in `${CLAUDE_CONFIG_DIR:-$HOME/.config/claude}/recipes/code-review.report-format.md`, which the
+agent loads for its own report and the orchestrator reads for the merged one (Step 8). Each step below names the
+Focus to dispatch; every Focus except `Acceptance Criteria` is a `##` section of the standards file. The reviewer
+never sees this file.
 
 1. **Resolve the target.** Use the MR/PR number, branch, or range the user gave, or else the diff against the
    merge base with the default branch. Record the head SHA; every reviewer reviews this SHA. Record the commit
@@ -60,8 +62,8 @@ reviewer never sees this file.
 2. **Dispatch in one message.** Start Step 1's context gathering. Without a Prior SHA, also start reviewers B, C, D,
    and E.
 3. **Dispatch when Step 1's context is ready.** Without a Prior SHA, start reviewer A. With a Prior SHA, start one
-   delta reviewer with no Focus, the Prior SHA, the prior review's Issues Found as Prior findings, and the Ticket
-   context.
+   delta reviewer with no Focus, the Prior SHA, every finding of the prior review with its section as Prior
+   findings, and the Ticket context.
 4. **Verify.** Wait for every reviewer. For each blocking finding, dispatch one `code-reviewer` agent in
    parallel with Target, head SHA, and `Finding: <the finding>`. For an acceptance-criterion finding, also pass the
    Ticket context. Drop every finding that returns `REFUTED`. Downgrade every finding that returns `UNVERIFIED` to
@@ -130,24 +132,25 @@ The orchestrator merges the verified results:
 * Verdict: CHANGES REQUESTED if any confirmed blocking finding remains. Otherwise COMMENT if any reviewer
   returned COMMENT or returned nothing (timeout or failure). Otherwise APPROVED.
 
-* Report two axes under separate headings. `## Spec`: the agent's Acceptance Criteria output (criteria and scope
-  creep). `## Standards`: every standards-file finding, including reviewer A's `MR/PR Scope & Description` findings.
-  A change can pass one axis and fail the other, so never merge or rerank findings across axes.
+* Keep the two axes of the report format apart. `## Spec` holds reviewer A's Acceptance Criteria output (criteria
+  and scope creep); `## Standards` holds every standards-file and repository-standard finding, including reviewer
+  A's `MR/PR Scope & Description` findings. A change can pass one axis and fail the other, so never merge or rerank
+  findings across axes.
 
-* Within one axis, merge findings that cite the same `path:line`. Keep the higher severity.
+* Within one section, merge findings that cite the same `path:line` and describe the same problem. Keep the higher
+  severity, with the card rows and the blocks of that finding; on a tie, of the first one reported. When two
+  sections of the Standards axis report the same problem, keep it in the section that rates it higher; on a tie, in
+  the first of them in the section order.
 
-* Lay out the report with the agent's Output Format sections, once:
-    1. The combined verdict and next action, then `## Code Review` with Commit, Scope, and `### Summary`.
-    2. `## Spec`: `### Acceptance Criteria`, `### Issues Found`, `### Suggestions`.
-    3. `## Standards`: `### Checklist Results`, `### Issues Found`, `### Suggestions`.
-    4. `## Result`: `### Validation`, `### Verdict`, and the footer. In `### Verdict`, add one line per axis: the
-       number of findings and the worst finding in that axis.
+* Lay out the merged report once, in the report format the reviewers use. Read it with
+  `cat "${CLAUDE_CONFIG_DIR:-$HOME/.config/claude}/recipes/code-review.report-format.md"` before writing, and follow
+  its Rules and Template, plus its Delta re-review part for a delta re-review. The merged count table has a row for
+  all nine sections. After merging, sort the findings and number their IDs as the format says. If the file is
+  missing or unreadable, report COMMENT and say that the report format could not be loaded.
 
-  For a delta re-review, split the agent's Delta Re-Review sections into the same axes.
-
-* Sort each `### Issues Found` as the agent's Output Format requires.
-
-* Keep each reviewer's stack trace or call chain with its finding.
+* Copy every `path:line` citation verbatim: the full path from the repository root, then the line
+  (`src/a/b.rs:888`). Never shorten it to a file name or a bare `:line`, in any section, and that includes notes
+  the orchestrator adds outside the report.
 
 Next action:
 

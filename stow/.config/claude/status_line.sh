@@ -58,6 +58,8 @@ context_critical=90
 context_tokens_warning=62000
 context_tokens_high=120000
 context_tokens_critical=180000
+tokens_per_kilo=1000
+tokens_per_mega_tenth=100000
 bar_width=10
 seconds_per_minute=60
 seconds_per_hour=3600
@@ -79,6 +81,7 @@ session_five_hour=""
 session_five_hour_reset=""
 session_seven_day=""
 session_seven_day_reset=""
+session_effort=""
 
 # Prints text in an "r;g;b" color, plain when NO_COLOR is set (no-color.org).
 paint() {
@@ -109,12 +112,13 @@ parse_session() {
             (.rate_limits.five_hour.used_percentage | text),
             (.rate_limits.five_hour.resets_at | text),
             (.rate_limits.seven_day.used_percentage | text),
-            (.rate_limits.seven_day.resets_at | text)
+            (.rate_limits.seven_day.resets_at | text),
+            .effort.level // ""
         ] | join($sep)' 2>/dev/null)" || fields=""
 
     IFS="${field_separator}" read -r session_cwd session_model session_context session_cost \
         session_tokens session_five_hour session_five_hour_reset \
-        session_seven_day session_seven_day_reset <<< "${fields}"
+        session_seven_day session_seven_day_reset session_effort <<< "${fields}"
 
     : "${session_cwd:=${PWD}}"
 }
@@ -419,6 +423,15 @@ format_model() {
     paint "${mauve}" "${icon_model} ${model}"
 }
 
+# Models without the effort parameter send no level, so this prints nothing for them.
+format_effort() {
+    local effort="${1}"
+
+    [[ -n "${effort}" ]] || return 0
+
+    paint "${overlay}" "${effort}"
+}
+
 # Prints how many of the given thresholds a value has reached, 0 to 3.
 threshold_level() {
     local value="${1}" \
@@ -460,14 +473,37 @@ context_color() {
     printf '%s' "${level_colors[token_level]}"
 }
 
-# Shows the percentage, colored by context_color.
+# Shortens a token count: 999, 84K, 1.3M. Prints nothing for a non-numeric count.
+format_tokens() {
+    local tokens="${1}" \
+          kilos \
+          mega_tenths
+
+    [[ "${tokens}" =~ ^[0-9]+$ ]] || return 0
+
+    tokens=$((10#${tokens}))
+    [[ "${tokens}" -lt "${tokens_per_kilo}" ]] && { printf '%s' "${tokens}"; return 0; }
+
+    kilos=$(((tokens + tokens_per_kilo / 2) / tokens_per_kilo))
+    [[ "${kilos}" -lt "${tokens_per_kilo}" ]] && { printf '%sK' "${kilos}"; return 0; }
+
+    mega_tenths=$(((tokens + tokens_per_mega_tenth / 2) / tokens_per_mega_tenth))
+    [[ $((mega_tenths % 10)) -eq 0 ]] && { printf '%sM' "$((mega_tenths / 10))"; return 0; }
+
+    printf '%s.%sM' "$((mega_tenths / 10))" "$((mega_tenths % 10))"
+}
+
+# Shows the percentage and the tokens in the context, colored by context_color.
 format_context() {
     local percent="${1%%.*}" \
-          tokens="${2:-}"
+          tokens="${2:-}" \
+          short_tokens
 
     [[ "${percent}" =~ ^[0-9]+$ ]] || return 0
 
-    paint "$(context_color "${tokens}" "${percent}")" "${icon_context} ${percent}%"
+    short_tokens="$(format_tokens "${tokens}")"
+
+    paint "$(context_color "${tokens}" "${percent}")" "${icon_context} ${percent}%${short_tokens:+ ${short_tokens}}"
 }
 
 format_cost() {
@@ -617,6 +653,7 @@ build_left() {
 build_right() {
     join_segments \
         "$(format_model "${session_model}")" \
+        "$(format_effort "${session_effort}")" \
         "$(format_context "${session_context}" "${session_tokens}")" \
         "$(format_cost "${session_cost}")" \
         "$(format_memory "$(memory_percent)")" \
