@@ -33,9 +33,9 @@ ${git_status}\
 ${git_metrics}\
 [\uE0B0](bg:#04a5e5 fg:green)\
 ${terraform}\
-[\uE0B0](bg:#ea9d34 fg:#04a5e5)\
+[\uE0B0](bg:#36261e fg:#04a5e5)\
 ${aws}\
-[\uE0B0](fg:#ea9d34)\
+[\uE0B0](fg:#36261e)\
 ${line_break}\
 ${character}\
 """
@@ -52,10 +52,10 @@ ${time}\
 """
 
 [aws]
-format            = '[${symbol} ( "${region}" )(\(${profile}\) )](${style})'
+format            = '[${symbol} ("${region}" )](${style})[(\(${profile}\) )](bg:#36261e fg:bold #ffaf00)'
 disabled          = false
 expiration_symbol = "❌"
-style             = "bg:#ea9d34 fg:bold surface0"
+style             = "bg:#36261e fg:bold #daa18f"
 symbol            = " ☁️"
 
 [battery]
@@ -90,7 +90,7 @@ vimcmd_replace_symbol     = "[](bold fg:purple)"
 vimcmd_visual_symbol      = "[](bold fg:lavender)"
 
 [cmd_duration]
-format   = "[ ⏳ ${duration} ](${style})"
+format   = "[ ⌛ ${duration} ](${style})"
 min_time = 100
 style    = "bg:#394260 fg:bold #769ff0"
 

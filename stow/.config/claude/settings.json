@@ -373,7 +373,10 @@
   },
   "spinnerTipsEnabled": true,
   "modelSettings": {
-    "opus": {}
+    "opus": {},
+    "claude-fable-5-2": {
+      "effortLevel": "max"
+    }
   },
   "pluginConfigs": {
     "ponytail@ponytail": {

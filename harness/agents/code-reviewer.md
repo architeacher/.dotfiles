@@ -4,6 +4,7 @@ description: Read-only code review specialist. Reviews a diff, branch, or MR/PR 
 tools: Read, Grep, Glob, Bash
 disallowedTools: Edit, Write, NotebookEdit
 model: opus
+effort: max
 ---
 
 # Code Reviewer Agent — Mochi
